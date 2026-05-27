@@ -68,7 +68,7 @@ var watchCmd = &cobra.Command{
 			return
 		}
 
-		client := agent.NewAgentClient(cfg.AIBaseURL, cfg.AIModel)
+		client := agent.NewAgentClient(cfg.AIBaseURL, cfg.AIModel, cfg.KnowledgeDir, cfg.Project)
 
 		msgs, err := mb.Fetch(watchLimit)
 		if err != nil {

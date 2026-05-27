@@ -6,36 +6,59 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 )
 
-// AgentClient is a generic OpenAI-compatible LLM client. It targets an `ai_url`
-// such as Ollama's http://localhost:11434/v1 or any OpenAI-compatible server.
+type ExecutionTrace struct {
+	Timestamp string `json:"timestamp"`
+	Project   string `json:"project"`
+	Role      string `json:"role"`
+	Goal      string `json:"goal"`
+	Prompt    string `json:"prompt"`
+	Response  string `json:"response"`
+	Status    string `json:"status"`
+	Error     string `json:"error,omitempty"`
+}
+
 type AgentClient struct {
 	BaseURL    string
 	Model      string
+	WikiDir    string
+	Project    string
 	httpClient *http.Client
 }
 
-func NewAgentClient(baseURL, model string) *AgentClient {
-	if baseURL == "" {
-		baseURL = "http://localhost:11434/v1"
-	}
-	if model == "" {
-		model = "llama3"
-	}
+func NewAgentClient(baseURL, model, wikiDir, project string) *AgentClient {
+	if baseURL == "" { baseURL = "http://localhost:11434/v1" }
+	if model == "" { model = "llama3" }
+
 	return &AgentClient{
 		BaseURL: baseURL,
 		Model:   model,
+		WikiDir: wikiDir,
+		Project: project,
 		httpClient: &http.Client{
 			Timeout: 120 * time.Second,
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				IdleConnTimeout:     90 * time.Second,
-				MaxIdleConnsPerHost: 20,
+				MaxIdleConns:    100,
+				IdleConnTimeout: 90 * time.Second,
 			},
 		},
 	}
+}
+
+func (c *AgentClient) logTrace(trace ExecutionTrace) {
+	date := time.Now().Format("2006-01-02")
+	logDir := filepath.Join(c.WikiDir, "telemetry", date)
+	os.MkdirAll(logDir, 0755)
+
+	filename := fmt.Sprintf("%s_%s_%d.json", trace.Role, c.Project, time.Now().UnixNano())
+	path := filepath.Join(logDir, filename)
+
+	data, _ := json.MarshalIndent(trace, "", "  ")
+	os.WriteFile(path, data, 0644)
 }
 
 type ChatMessage struct {
@@ -43,53 +66,79 @@ type ChatMessage struct {
 	Content string `json:"content"`
 }
 
-type responseFormat struct {
+type ResponseFormat struct {
 	Type string `json:"type"`
 }
 
-type chatRequest struct {
+type ChatRequest struct {
 	Model          string          `json:"model"`
 	Messages       []ChatMessage   `json:"messages"`
 	Stream         bool            `json:"stream"`
-	ResponseFormat *responseFormat `json:"response_format,omitempty"`
+	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
 }
 
-type chatResponse struct {
+type ChatResponse struct {
 	Choices []struct {
 		Message ChatMessage `json:"message"`
 	} `json:"choices"`
 }
 
-// Ask sends a single user prompt. When jsonFormat is true it requests a strict
-// JSON object response.
 func (c *AgentClient) Ask(prompt string, jsonFormat bool) (string, error) {
-	reqBody := chatRequest{
-		Model:    c.Model,
-		Messages: []ChatMessage{{Role: "user", Content: prompt}},
-		Stream:   false,
+	trace := ExecutionTrace{
+		Timestamp: time.Now().Format(time.RFC3339),
+		Project:   c.Project,
+		Role:      "nurikun_agent",
+		Prompt:    prompt,
+		Status:    "success",
 	}
+
+	reqBody := ChatRequest{
+		Model: c.Model,
+		Messages: []ChatMessage{{Role: "user", Content: prompt}},
+		Stream: false,
+	}
+
 	if jsonFormat {
-		reqBody.ResponseFormat = &responseFormat{Type: "json_object"}
+		reqBody.ResponseFormat = &ResponseFormat{Type: "json_object"}
 	}
 
 	jsonData, _ := json.Marshal(reqBody)
-	resp, err := c.httpClient.Post(c.BaseURL+"/chat/completions", "application/json", bytes.NewBuffer(jsonData))
+	url := c.BaseURL + "/chat/completions"
+
+	resp, err := c.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return "", fmt.Errorf("AI connection failed: %v", err)
+		trace.Status = "error"
+		trace.Error = err.Error()
+		c.logTrace(trace)
+		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("AI returned error %d: %s", resp.StatusCode, string(body))
+		trace.Status = "error"
+		trace.Error = string(body)
+		c.logTrace(trace)
+		return "", fmt.Errorf("AI error %d: %s", resp.StatusCode, string(body))
 	}
 
-	var out chatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", fmt.Errorf("failed to decode AI response: %v", err)
+	var chatResp ChatResponse
+	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
+		trace.Status = "error"
+		trace.Error = err.Error()
+		c.logTrace(trace)
+		return "", err
 	}
-	if len(out.Choices) == 0 {
-		return "", fmt.Errorf("AI returned no choices")
+
+	if len(chatResp.Choices) == 0 {
+		trace.Status = "error"
+		trace.Error = "no choices"
+		c.logTrace(trace)
+		return "", fmt.Errorf("no choices")
 	}
-	return out.Choices[0].Message.Content, nil
+
+	res := chatResp.Choices[0].Message.Content
+	trace.Response = res
+	c.logTrace(trace)
+	return res, nil
 }
