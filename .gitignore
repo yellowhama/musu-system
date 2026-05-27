@@ -1,0 +1,18 @@
+# Binaries
+*.exe
+*.exe~
+
+# Data Silos (Private User Content)
+projects/
+data/
+screenshots/
+logs/
+
+# Configuration & Secrets
+.env
+config.yaml
+*.db
+*.db-journal
+
+# Go
+vendor/
