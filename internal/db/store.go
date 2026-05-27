@@ -237,6 +237,24 @@ func (s *Store) MarkSent(subscriberID int) error {
 	return err
 }
 
+// ListSubscribers returns every subscriber of a list, any status, ordered by id.
+func (s *Store) ListSubscribers(listID int) ([]Subscriber, error) {
+	rows, err := s.db.Query("SELECT id, list_id, email, name, status FROM subscribers WHERE list_id = ? ORDER BY id", listID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []Subscriber
+	for rows.Next() {
+		var sub Subscriber
+		if err := rows.Scan(&sub.ID, &sub.ListID, &sub.Email, &sub.Name, &sub.Status); err != nil {
+			continue
+		}
+		out = append(out, sub)
+	}
+	return out, nil
+}
+
 // ---- Suppression ----
 
 func (s *Store) Suppress(email, reason string) error {

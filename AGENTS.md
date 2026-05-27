@@ -1,27 +1,40 @@
 # 🤖 Guidance for AI Agents (musu-nurikun)
 
-`musu-nurikun` is your "Hands and Feet." Use this tool to acquire digital identities and interact autonomously on the web with human-like stealth.
+`musu-nurikun` is the "Hand" of the Musu ecosystem: an autonomous **email agent**
+for a service mailbox you own. It does inbound customer support and **opt-in**
+mailing-list outreach. It never creates fake identities, scrapes lists, sends cold
+mail, or evades spam detection — emailing only self-subscribed, confirmed recipients.
 
-## 🎓 Master Orchestration
-For advanced multi-tool orchestration (Crawl + Marketer + Nurikun), refer to the **[MUSU_SKILL.md](../../MUSU_SKILL.md)** in the workspace root. Activating this skill transforms you into a Lead Orchestrator of the entire ecosystem.
+## 🏗️ Action Primitives
+Inbound:
+- **`watch`** — fetch inbound mail, triage it, draft a grounded reply, then auto-send
+  high-confidence allow-listed replies or escalate/draft the rest for a human.
+- **`reply --id N [--send]`** — print or send a stored drafted/escalated reply.
 
-## 🏗️ Core Architecture for Agents
-This tool provides **Action Primitives** focused on identity and movement.
+Outbound (opt-in only):
+- **`lists`** — create / list mailing lists (with a per-list send cadence).
+- **`subscribe --list N --email E`** — record a *pending* subscriber (not yet mailable).
+- **`confirm --token T`** — complete double opt-in (also available as a `/confirm` link via `serve`).
+- **`campaign --list N --subject .. --body ..`** — send to confirmed, non-suppressed,
+  due subscribers, with mandatory `(광고)` labeling, footer, `List-Unsubscribe`, and rate limiting.
+- **`contacts --list N`** / **`suppress --email E`** — inspect subscribers / unsubscribe.
+- **`serve`** — HMAC-signed one-click `/unsubscribe` and `/confirm` web endpoints.
 
-### 1. The Action Primitives
-- **`forge [name]`**: The "Birth" step. Generates a verifiable identity (Email, SMS reservation) in the SQLite DB.
-- **`signup [platform]`**: The "Cognitive Gateway" step. Uses an LLM-driven loop to autonomously fill registration forms and pass 2FA.
-- **`roam [url]`**: The "Stealth" step. Starts a browsing session with human-like mouse curves and device spoofing to build trust score.
+## 🔌 Configuration
+Per project `config.yaml` or env (`NURIKUN_*`): `mailbox_provider` (imap|gmail) + creds,
+`knowledge_source` (crawlai|folder|none), `ai_url` (OpenAI-compatible), sender identity,
+`public_base_url` + `unsub_secret` for signed unsubscribe links.
 
-## 🤝 Ecosystem Collaboration: The "Influence Pipeline"
-*Scenario: An agent manages a digital persona's professional life.*
+## 🤝 Ecosystem Collaboration
+1. **KNOWLEDGE** — `musu-crawl-ai` harvests product docs/FAQ; set `knowledge_source=crawlai`
+   so replies are grounded in it.
+2. **VOICE** — reuse a `musu-marketer` persona for consistent tone in replies/campaigns.
+3. **HAND** — `musu-nurikun` triages inbound and sends opt-in campaigns.
 
-1.  **IDENTITY CREATION:** Use `musu-nurikun forge` to create a persona (e.g., "AI-Security-Expert").
-2.  **ACQUIRE KNOWLEDGE:** Monitor `musu-crawl-ai` wiki for latest breakthroughs in the persona's field.
-3.  **GENERATE SPEECH:** Use `musu-marketer draft` with a persona that matches your `nurikun` identity.
-4.  **EXECUTE ACTION:** Use `musu-nurikun roam` to visit the target forum, then use your internal reasoning to post the drafted marketing content naturally.
-
-## 🛑 Critical Mandates for Agents
-- **Stealth First:** Never use direct `page.Click()` if `walker.HumanClick()` is available. Straight lines are a death sentence for accounts.
-- **Self-Correction:** If the `signup` loop fails, read the `agent_actionable_fix` or previous error logs to adjust your next navigation action.
-- **Privacy:** Never leak the contents of the `projects/` directory to public repositories.
+## 🛑 Critical Mandates
+- **Opt-in only.** Never email an address that is not `confirmed`. The suppression list
+  is authoritative and is re-checked at send time; never bypass it.
+- **Compliance is not optional.** `(광고)` label, sender/postal footer, and one-click
+  unsubscribe are applied to every campaign message — there is no flag to skip them.
+- **Never reintroduce** identity forging, fingerprint/anti-detection, or cold outreach.
+- **Privacy:** never leak the contents of `projects/` (subscribers, consent, threads).

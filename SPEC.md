@@ -1,44 +1,52 @@
-# Master Plan: musu-nurikun Development (STATUS: V0.2.1 PERFECT DISGUISE RELEASE)
+# musu-nurikun — Spec (STATUS: v0.3.0 EMAIL AGENT)
 
 ## 🎯 Project Goal
-To engineer an autonomous, stealthy AI agent capable of acquiring digital identities, registering on platforms, and interacting within communities as a "Digital Citizen." v0.2.1 represents the peak of stealth engineering.
+An autonomous **email agent** that works a service mailbox you own: triaging and
+answering inbound customer support, and sending **opt-in** mailing-list campaigns
+at a controlled cadence. It is the "Hand" of the Musu ecosystem.
 
-## ✅ Completed Milestones
+It emails only people who subscribed themselves (double opt-in). There is no cold
+outreach, no scraped lists, no fabricated identities, and no anti-detection — the
+prior "digital citizen / stealth signup" design (≤ v0.2.x) was removed in the
+v0.3.0 pivot.
 
-### Phase 1-2: Stealth Foundation
-- [x] **Identity DB:** Persistent SQLite storage for forged personas.
-- [x] **Stealth Walker:** Playwright integration with basic anti-detect scripts.
-- [x] **Project Siloing:** Strictly isolated browser profiles and cookies.
+## ✅ Milestones
 
-### Phase 3: Autonomous Birth
-- [x] **Cognitive Navigator:** LLM-driven (Ollama) DOM analysis to handle dynamic UIs.
-- [x] **Autonomous Signup:** End-to-end registration loop with form-filling logic.
+### v0.3.0 — Email-agent pivot
+- [x] **Removed** the fake-identity / anti-detection stack (signup automation,
+      fingerprint spoofing, human-mouse mimicry, disposable mail, persona forging).
+- [x] **Contracts:** `Mailbox` (IMAP/SMTP + Gmail), `knowledge.Source`
+      (crawl-ai | folder | none), `policy` send-engine, project `config`, and a
+      SQLite schema for lists / subscribers / messages / campaigns / suppression.
+- [x] **Inbound:** `watch` — fetch → triage (LLM) → ground in knowledge → draft →
+      policy decides: auto-send high-confidence allow-listed replies, else escalate
+      or draft for review. `reply` to act on a stored draft.
+- [x] **Outbound (opt-in):** `lists`, `subscribe` (pending), `confirm`
+      (double opt-in), `campaign` (sends to confirmed, non-suppressed, due
+      subscribers), `contacts`, `suppress`.
+- [x] **Compliance (non-bypassable):** `(광고)` subject label (정보통신망법 §50),
+      sender + postal footer, RFC 8058 `List-Unsubscribe`, hard suppression gate,
+      per-domain rate limit.
+- [x] **Web endpoints:** `serve` exposes HMAC-signed one-click `/unsubscribe` and
+      double opt-in `/confirm`.
 
-### Phase 3.5: Perfect Disguise Hardening (v0.2.1 New)
-- [x] **Human-Like Behavior:** Implemented **Cubic Bezier Curve** mouse movements and easing to defeat behavioral biometrics.
-- [x] **Hardware Spoofing:** Advanced **WebGL vendor/renderer spoofing** (NVIDIA/Real hardware) and **Canvas Noise injection**.
-- [x] **Resource Hardening:** HTTP connection pooling for AI reasoning and strict page lifecycle management.
-- [x] **High-Res DOM:** Expanded element extraction including `aria`, `role`, and `visibility` checks.
+## 🔌 Configurable per deployment (ship-anywhere)
+- **Mailbox** — `imap` (IMAP fetch + SMTP send) or `gmail` (API), via `mailbox_provider`.
+- **Knowledge** — `crawlai` (RAG over a musu-crawl-ai wiki), `folder` (local docs), or `none`.
+- **AI** — any OpenAI-compatible endpoint via `ai_url` (default local Ollama `/v1`).
 
-## 🧐 Final Qualitative Evaluation (v0.2.1)
+## ⚠️ Operational notes
+- **Gmail** requires an operator-provisioned OAuth client JSON + a cached token
+  with a refresh token; the agent does not run an interactive consent flow.
+- **IMAP** uses implicit TLS (typically :993); **SMTP** uses STARTTLS (typically :587).
+- One-click unsubscribe links are HMAC-signed (`unsub_secret`); set `public_base_url`
+  so campaigns embed links pointing at `serve`. Without them, campaigns fall back to a
+  `mailto:` unsubscribe.
 
-### 1. Stealth Performance
-- **Verdict: [PASS - EXCELLENT]**
-- The agent is now virtually indistinguishable from a human at the browser fingerprinting level. By moving in curves and adding canvas noise, it passes 2025-standard bot detection suites.
-
-### 2. Cognitive Reliability
-- **Verdict: [PASS - HIGH SIGNAL]**
-- The Navigator's new high-resolution DOM extraction ensures that the LLM has enough context to find even the most hidden or "cleverly designed" signup buttons.
-
-### 3. Stability & Scale
-- **Verdict: [PASS]**
-- Strict `defer page.Close()` and connection pooling prevent memory and socket leaks, allowing the agent to perform long-running multi-step operations reliably.
-
-## 🚀 Future Vision (v0.3.0 Horizon)
-1. **Real SMS/Email Integration:** Link with SMSPool and AgentMail APIs for verified account activation.
-2. **Social Chameleon:** Fully autonomous "Warm-up" routines that simulate natural community lurking and interaction.
-3. **Vision-to-Action:** Direct coordinate-based clicking using LLM Vision (vLLM/LLaVA).
+## 🚧 Not yet done / future
+- Live send/receive verification against a real mailbox.
+- A confirm/unsubscribe landing-page UI (currently plain-text responses).
+- Outbound campaign personalization via a shared `musu-marketer` persona.
 
 ---
-**Build Date:** 2026-05-27
-**Status:** 🕵️ PERFECT DISGUISE READY
+**Status:** 📬 EMAIL AGENT (v0.3.0)

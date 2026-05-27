@@ -40,6 +40,9 @@ type Config struct {
 	SenderAddress  string
 	SenderPhysical string // postal address required in the compliance footer
 
+	PublicBaseURL string // base URL the `serve` endpoints are reachable at (unsubscribe/confirm links)
+	UnsubSecret   string // HMAC secret for signed one-click unsubscribe links
+
 	Policy policy.Config
 }
 
@@ -88,6 +91,9 @@ func Load(project string) (*Config, error) {
 		SenderName:     v.GetString("sender_name"),
 		SenderAddress:  v.GetString("sender_address"),
 		SenderPhysical: v.GetString("sender_physical"),
+
+		PublicBaseURL: v.GetString("public_base_url"),
+		UnsubSecret:   v.GetString("unsub_secret"),
 
 		Policy: policy.DefaultConfig(),
 	}, nil

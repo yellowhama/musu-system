@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -171,6 +172,14 @@ func mailboxSettings(cfg *config.Config) mailbox.Settings {
 // address carrying an unsubscribe subject scoped to the recipient — always a
 // valid, honored opt-out path. Prefer the SenderAddress, then SMTPFrom.
 func unsubscribeURLFor(cfg *config.Config, sub db.Subscriber) string {
+	// Prefer a signed one-click web unsubscribe when a public endpoint + secret
+	// are configured (served by `musu-nurikun serve`).
+	if cfg.PublicBaseURL != "" && cfg.UnsubSecret != "" {
+		return fmt.Sprintf("%s/unsubscribe?email=%s&sig=%s",
+			strings.TrimRight(cfg.PublicBaseURL, "/"),
+			url.QueryEscape(sub.Email),
+			compliance.SignUnsub(sub.Email, cfg.UnsubSecret))
+	}
 	addr := cfg.SenderAddress
 	if addr == "" {
 		addr = cfg.SMTPFrom

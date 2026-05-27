@@ -11,14 +11,8 @@ var contactsList int
 
 var contactsCmd = &cobra.Command{
 	Use:   "contacts",
-	Short: "List the subscribers currently mailable on a list",
-	Long: `Show subscribers for a list.
-
-NOTE: the store exposes only DueSubscribers (confirmed, non-suppressed, past
-the cadence window) — there is no "all subscribers" query and DB schema
-changes are out of scope here. This command therefore prints the DueSubscribers
-view as an approximation of the active audience for the list. Pending,
-suppressed, and within-cadence subscribers are intentionally not shown.`,
+	Short: "List the subscribers of a list with their consent status",
+	Long:  `Show every subscriber of a list and its status (pending / confirmed / unsubscribed).`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if contactsList == 0 {
 			return fmt.Errorf("--list is required")
@@ -34,21 +28,25 @@ suppressed, and within-cadence subscribers are intentionally not shown.`,
 			return fmt.Errorf("get list %d: %w", contactsList, err)
 		}
 
-		subs, err := store.DueSubscribers(list.ID, list.CadenceDays)
+		subs, err := store.ListSubscribers(list.ID)
 		if err != nil {
 			return fmt.Errorf("list subscribers for list %d: %w", list.ID, err)
 		}
 
-		fmt.Printf("Mailable (due) subscribers on list #%d %q (cadence %d days):\n", list.ID, list.Name, list.CadenceDays)
+		fmt.Printf("Subscribers on list #%d %q (cadence %d days):\n", list.ID, list.Name, list.CadenceDays)
 		if len(subs) == 0 {
-			fmt.Println("  (none currently due — confirmed subscribers may still exist within the cadence window)")
+			fmt.Println("  (no subscribers yet)")
 			return nil
 		}
 		fmt.Printf("  %-5s %-32s %-20s %s\n", "ID", "EMAIL", "NAME", "STATUS")
+		var confirmed int
 		for _, s := range subs {
 			printContact(s)
+			if s.Status == "confirmed" {
+				confirmed++
+			}
 		}
-		fmt.Printf("\n%d due subscriber(s).\n", len(subs))
+		fmt.Printf("\n%d subscriber(s): %d confirmed (mailable, subject to suppression + cadence).\n", len(subs), confirmed)
 		return nil
 	},
 }
