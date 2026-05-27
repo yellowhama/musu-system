@@ -17,6 +17,8 @@
 - aligned `doctor --fix` with `init` by accepting `--mailbox-provider` and `--knowledge-source`
 - rebuilt the tracked exe so the binary matches the current source/README command surface
 - `init` now writes a project-local `SETUP.md`, optional folder knowledge guide, and machine-readable bootstrap metadata
+- `init` now also writes `.env.example`, `bootstrap.ps1`, and Gmail `oauth/README.md`
+- runtime config now loads project-local `.env` as a secrets layer above `config.yaml`
 
 ## Operator Flow
 1. `musu-nurikun init --project <name> --mailbox-provider imap|gmail --knowledge-source crawlai|folder|none`
@@ -25,7 +27,7 @@
 4. `musu-nurikun watch` or `musu-nurikun campaign ...`
 
 ## Known Constraints
-- mailbox/OAuth bootstrap still requires manual operator credentials
+- mailbox/OAuth bootstrap still requires manual operator credentials even though the scaffold is more guided
 - `doctor` is comprehensive, but it is still one command file doing report + fix orchestration
 - `public_base_url` and `unsub_secret` remain manual to avoid accidental weak defaults, and `doctor` now treats them as blocking readiness requirements
 

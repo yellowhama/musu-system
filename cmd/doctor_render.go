@@ -9,6 +9,7 @@ import (
 func renderDoctorResult(result preflight.DoctorResult, project string, configPath string) {
 	if result.Report.ConfigExists {
 		fmt.Println("✅ Project config exists")
+		fmt.Println("   Project-local secrets can also live in .env next to config.yaml")
 	} else {
 		fmt.Printf("⚠️  Project config missing: %s\n", configPath)
 		fmt.Printf("   Run: musu-nurikun init --project %s or use doctor --fix\n", project)

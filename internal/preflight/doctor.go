@@ -123,7 +123,7 @@ func buildActionableFix(report DoctorReport) string {
 		fixes = append(fixes, "run init or doctor --fix to recreate the project scaffold")
 	}
 	if len(report.MailboxIssues) > 0 {
-		fixes = append(fixes, "fill the required mailbox credentials for the selected mailbox_provider")
+		fixes = append(fixes, "fill the required mailbox credentials for the selected mailbox_provider in project .env or config.yaml")
 	}
 	if len(report.KnowledgeIssues) > 0 {
 		fixes = append(fixes, "fix knowledge_source configuration so the referenced crawl or folder path exists")

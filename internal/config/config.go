@@ -1,7 +1,10 @@
 package config
 
 import (
+	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/spf13/viper"
 	"github.com/yellowhama/musu-nurikun/internal/policy"
@@ -65,35 +68,37 @@ func Load(project string) (*Config, error) {
 	v.SetConfigFile(cfgPath)
 	_ = v.ReadInConfig() // optional
 
+	projectEnv := loadProjectEnv(filepath.Join("projects", project, ".env"))
+
 	return &Config{
 		Project:    project,
-		AIModel:    v.GetString("ai_model"),
-		AIBaseURL:  firstNonEmpty(viper.GetString("ai_url"), v.GetString("ai_url")),
-		AIProvider: firstNonEmpty(viper.GetString("ai_provider"), v.GetString("ai_provider")),
+		AIModel:    valueString(v, projectEnv, "ai_model", "NURIKUN_AI_MODEL"),
+		AIBaseURL:  valueString(v, projectEnv, "ai_url", "NURIKUN_AI_URL"),
+		AIProvider: valueString(v, projectEnv, "ai_provider", "NURIKUN_AI_PROVIDER"),
 
-		MailboxProvider:  v.GetString("mailbox_provider"),
-		IMAPHost:         v.GetString("imap_host"),
-		IMAPPort:         v.GetInt("imap_port"),
-		IMAPUser:         v.GetString("imap_user"),
-		IMAPPass:         v.GetString("imap_pass"),
-		SMTPHost:         v.GetString("smtp_host"),
-		SMTPPort:         v.GetInt("smtp_port"),
-		SMTPUser:         v.GetString("smtp_user"),
-		SMTPPass:         v.GetString("smtp_pass"),
-		SMTPFrom:         v.GetString("smtp_from"),
-		GmailCredentials: v.GetString("gmail_credentials"),
-		GmailToken:       v.GetString("gmail_token"),
+		MailboxProvider:  valueString(v, projectEnv, "mailbox_provider", "NURIKUN_MAILBOX_PROVIDER"),
+		IMAPHost:         valueString(v, projectEnv, "imap_host", "NURIKUN_IMAP_HOST"),
+		IMAPPort:         valueInt(v, projectEnv, "imap_port", "NURIKUN_IMAP_PORT"),
+		IMAPUser:         valueString(v, projectEnv, "imap_user", "NURIKUN_IMAP_USER"),
+		IMAPPass:         valueString(v, projectEnv, "imap_pass", "NURIKUN_IMAP_PASS"),
+		SMTPHost:         valueString(v, projectEnv, "smtp_host", "NURIKUN_SMTP_HOST"),
+		SMTPPort:         valueInt(v, projectEnv, "smtp_port", "NURIKUN_SMTP_PORT"),
+		SMTPUser:         valueString(v, projectEnv, "smtp_user", "NURIKUN_SMTP_USER"),
+		SMTPPass:         valueString(v, projectEnv, "smtp_pass", "NURIKUN_SMTP_PASS"),
+		SMTPFrom:         valueString(v, projectEnv, "smtp_from", "NURIKUN_SMTP_FROM"),
+		GmailCredentials: valueString(v, projectEnv, "gmail_credentials", "NURIKUN_GMAIL_CREDENTIALS"),
+		GmailToken:       valueString(v, projectEnv, "gmail_token", "NURIKUN_GMAIL_TOKEN"),
 
-		KnowledgeSource: v.GetString("knowledge_source"),
-		CrawlPath:       v.GetString("crawl_path"),
-		KnowledgeDir:    v.GetString("knowledge_dir"),
+		KnowledgeSource: valueString(v, projectEnv, "knowledge_source", "NURIKUN_KNOWLEDGE_SOURCE"),
+		CrawlPath:       valueString(v, projectEnv, "crawl_path", "NURIKUN_CRAWL_PATH"),
+		KnowledgeDir:    valueString(v, projectEnv, "knowledge_dir", "NURIKUN_KNOWLEDGE_DIR"),
 
-		SenderName:     v.GetString("sender_name"),
-		SenderAddress:  v.GetString("sender_address"),
-		SenderPhysical: v.GetString("sender_physical"),
+		SenderName:     valueString(v, projectEnv, "sender_name", "NURIKUN_SENDER_NAME"),
+		SenderAddress:  valueString(v, projectEnv, "sender_address", "NURIKUN_SENDER_ADDRESS"),
+		SenderPhysical: valueString(v, projectEnv, "sender_physical", "NURIKUN_SENDER_PHYSICAL"),
 
-		PublicBaseURL: v.GetString("public_base_url"),
-		UnsubSecret:   v.GetString("unsub_secret"),
+		PublicBaseURL: valueString(v, projectEnv, "public_base_url", "NURIKUN_PUBLIC_BASE_URL"),
+		UnsubSecret:   valueString(v, projectEnv, "unsub_secret", "NURIKUN_UNSUB_SECRET"),
 
 		Policy: policy.DefaultConfig(),
 	}, nil
@@ -106,4 +111,54 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func valueString(v *viper.Viper, projectEnv map[string]string, key string, envKey string) string {
+	if value, ok := os.LookupEnv(envKey); ok && strings.TrimSpace(value) != "" {
+		return value
+	}
+	if value, ok := projectEnv[envKey]; ok && strings.TrimSpace(value) != "" {
+		return value
+	}
+	return v.GetString(key)
+}
+
+func valueInt(v *viper.Viper, projectEnv map[string]string, key string, envKey string) int {
+	if value, ok := os.LookupEnv(envKey); ok && strings.TrimSpace(value) != "" {
+		if parsed, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+			return parsed
+		}
+	}
+	if value, ok := projectEnv[envKey]; ok && strings.TrimSpace(value) != "" {
+		if parsed, err := strconv.Atoi(strings.TrimSpace(value)); err == nil {
+			return parsed
+		}
+	}
+	return v.GetInt(key)
+}
+
+func loadProjectEnv(path string) map[string]string {
+	values := map[string]string{}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return values
+	}
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+		value = strings.Trim(value, `"'`)
+		if key != "" {
+			values[key] = value
+		}
+	}
+	return values
 }

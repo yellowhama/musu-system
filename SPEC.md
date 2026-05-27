@@ -46,6 +46,10 @@ v0.3.0 pivot.
   - `--mailbox-provider imap|gmail`
   - `--knowledge-source none|crawlai|folder`
   This keeps project bootstrap semantics aligned between first-time setup and scaffold recovery.
+- Project-local `.env` secrets are now supported in addition to `config.yaml`, and `init` writes:
+  - `.env.example`
+  - `bootstrap.ps1`
+  - Gmail `oauth/README.md` for credential/token placement
 
 ## 🚧 Not yet done / future
 - Live send/receive verification against a real mailbox.

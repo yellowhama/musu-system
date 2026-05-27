@@ -55,7 +55,9 @@ Drop it into any project: point it at a mailbox, choose a knowledge source, and 
 > `init` now writes a commented config template so you can fill in IMAP/SMTP or Gmail settings directly.
 > Use `--mailbox-provider imap|gmail` and `--knowledge-source none|crawlai|folder` to generate a closer first draft of the config.
 > `init --json` now returns the scaffold paths, selected presets, and the exact next setup steps for agent-to-agent handoff.
+> `init` now also writes `projects/<project>/.env.example` and `bootstrap.ps1`, and Gmail presets create `projects/<project>/oauth/README.md`.
 > `doctor --fix` can recreate a missing local project scaffold/config, but mailbox credentials and public delivery settings still need to be filled in manually.
+> `projects/<project>/.env` is now loaded as a project-local secrets layer, so operators can keep mailbox credentials out of `config.yaml`.
 > `doctor` will continue to fail until `public_base_url` and `unsub_secret` are set, because confirmation and one-click unsubscribe links are part of the operational contract.
 > JSON mode now uses the same top-level envelope as the other Musu tools: `status`, `message`, `data`, `actionable_fix`.
 > Local command-level smoke coverage now exercises both `watch` and `campaign` against a fake mailbox provider, so the inbox and compliant send loops are verified without live mailbox credentials.
@@ -72,6 +74,12 @@ Example bootstrap presets:
 ```
 
 Reference config samples live under `examples/config.imap.yaml` and `examples/config.gmail.yaml`.
+The fastest bootstrap path is now:
+```bash
+./musu-nurikun init --project acme-support --mailbox-provider imap --knowledge-source crawlai
+powershell -ExecutionPolicy Bypass -File ./projects/acme-support/bootstrap.ps1
+./musu-nurikun doctor --project acme-support
+```
 
 If your local `musu-nurikun.exe --help` still shows old commands like `roam`, `signup`, or `forge`, the binary is stale. Rebuild from the current source before using it:
 

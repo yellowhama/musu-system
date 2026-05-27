@@ -16,6 +16,7 @@
 - the JSON diagnostics now carry stable `issue_codes` so automation can distinguish bind-address misconfiguration from missing installs or timeouts
 - the real integration path is now model-configurable through `MUSU_NURIKUN_INTEGRATION_MODEL`
 - a real Ollama-backed `watch` integration pass was verified with `llama3.2:1b`
+- project-local `.env` loading and preset bootstrap artifacts now reduce mailbox/OAuth setup friction materially
 
 ## Strong Points
 - clear post-pivot product boundary
@@ -24,7 +25,7 @@
 - practical recovery path for missing scaffolds
 
 ## Concerns
-- real mailbox/OAuth bootstrap is still manual
+- real mailbox/OAuth bootstrap is still operator-driven even though scaffold generation is better
 - `cmd/doctor.go` is growing into a broad orchestrator
 - mailbox bootstrap still depends on operator-supplied secrets and URLs that cannot be safely defaulted
 
