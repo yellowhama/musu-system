@@ -37,5 +37,5 @@ func New(provider string, s Settings) (Mailbox, error) {
 	}
 }
 
-func newIMAP(Settings) (Mailbox, error)  { return nil, fmt.Errorf("imap mailbox not implemented yet") }
-func newGmail(Settings) (Mailbox, error) { return nil, fmt.Errorf("gmail mailbox not implemented yet") }
+func newIMAP(s Settings) (Mailbox, error)  { return newIMAPMailbox(s) }
+func newGmail(s Settings) (Mailbox, error) { return newGmailMailbox(s) }

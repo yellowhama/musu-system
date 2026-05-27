@@ -27,5 +27,5 @@ func New(s Settings) (Source, error) {
 	}
 }
 
-func newCrawlAI(Settings) (Source, error) { return NoneSource{}, nil }
-func newFolder(Settings) (Source, error)  { return NoneSource{}, nil }
+func newCrawlAI(s Settings) (Source, error) { return newCrawlAISource(s) }
+func newFolder(s Settings) (Source, error)  { return newFolderSource(s) }
