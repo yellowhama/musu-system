@@ -15,7 +15,7 @@ var initCmd = &cobra.Command{
 	Short: "Initialize musu-nurikun environment",
 	Run: func(cmd *cobra.Command, args []string) {
 		project := viper.GetString("project")
-		fmt.Printf("🌐 Initializing musu-nurikun for project '%s'...\n", project)
+		fmt.Printf("🌐 Initializing musu-nurikun for project '%s' (Version %s)...\n", project, Version)
 
 		// 1. Create project directories
 		baseDir := filepath.Join("projects", project)

@@ -86,7 +86,13 @@ func NewWalker(project string) (*Walker, error) {
 
 func (w *Walker) Navigate(url string) (playwright.Page, error) {
 	page, err := w.context.NewPage()
-	return page, err
+	if err != nil { return nil, err }
+	
+	if _, err := page.Goto(url); err != nil {
+		page.Close()
+		return nil, err
+	}
+	return page, nil
 }
 
 func (w *Walker) HumanClick(page playwright.Page, selector string) error {

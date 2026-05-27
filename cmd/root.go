@@ -8,10 +8,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const Version = "v0.2.2"
+
 var rootCmd = &cobra.Command{
-	Use:   "musu-nurikun",
-	Short: "Autonomous Digital Citizen Agent",
-	Long:  `Engineered to acquire digital identities, register on platforms, and interact autonomously.`,
+	Use:     "musu-nurikun",
+	Short:   "Autonomous Digital Citizen Agent",
+	Long:    `Engineered to acquire digital identities, register on platforms, and interact autonomously.`,
+	Version: Version,
 }
 
 func Execute() {

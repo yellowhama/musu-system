@@ -39,7 +39,7 @@ func NewNavigator(model string) *Navigator {
 }
 
 func (n *Navigator) DetermineNextAction(goal string, page playwright.Page) (*BrowserAction, error) {
-	// 1. Extract high-resolution DOM (including roles and aria labels)
+	// 1. Extract high-resolution DOM
 	domJSON, err := page.Evaluate(`() => {
 		const elements = document.querySelectorAll('button, input, a, select, [role="button"], [role="link"]');
 		return Array.from(elements).map(el => {
@@ -60,12 +60,22 @@ func (n *Navigator) DetermineNextAction(goal string, page playwright.Page) (*Bro
 
 	domData, _ := json.Marshal(domJSON)
 
-	// 2. Prompt LLM with enhanced context
-	prompt := fmt.Sprintf(`You are an Expert Browser Navigator.
+	var lastError error
+	var currentFeedback string
+
+	// ⚡ Agentic Self-Correction Loop (Max 3 retries)
+	for attempt := 1; attempt <= 3; attempt++ {
+		feedbackSection := ""
+		if currentFeedback != "" {
+			feedbackSection = fmt.Sprintf("\n\n### PREVIOUS ERROR ###\nYour last response was invalid: %s. Please fix the JSON format and try again.", currentFeedback)
+		}
+
+		prompt := fmt.Sprintf(`You are an Expert Browser Navigator.
 Goal: %s
 Current URL: %s
 
 Interactive Elements (JSON):
+%s
 %s
 
 Identify the next step to reach the goal. Use specific selectors like [id='...'], [name='...'], or text='...'.
@@ -75,34 +85,48 @@ Output in strict JSON:
   "selector": "CSS selector",
   "value": "text (if filling)",
   "reason": "short explanation"
-}`, goal, page.URL(), string(domData))
+}`, goal, page.URL(), string(domData), feedbackSection)
 
-	reqBody := map[string]interface{}{
-		"model":  n.Model,
-		"prompt": prompt,
-		"stream": false,
-		"format": "json",
+		reqBody := map[string]interface{}{
+			"model":  n.Model,
+			"prompt": prompt,
+			"stream": false,
+			"format": "json",
+		}
+
+		jsonData, _ := json.Marshal(reqBody)
+		resp, err := n.httpClient.Post(n.OllamaURL, "application/json", bytes.NewBuffer(jsonData))
+		if err != nil {
+			lastError = err
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			body, _ := io.ReadAll(resp.Body)
+			lastError = fmt.Errorf("ollama error %d: %s", resp.StatusCode, string(body))
+			continue
+		}
+
+		var result struct {
+			Response string `json:"response"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			currentFeedback = fmt.Sprintf("Failed to decode Ollama wrapper: %v", err)
+			lastError = err
+			continue
+		}
+
+		var action BrowserAction
+		if err := json.Unmarshal([]byte(result.Response), &action); err != nil {
+			currentFeedback = fmt.Sprintf("Failed to parse inner action JSON: %v", err)
+			lastError = err
+			continue
+		}
+
+		// Success!
+		return &action, nil
 	}
 
-	jsonData, _ := json.Marshal(reqBody)
-	resp, err := n.httpClient.Post(n.OllamaURL, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil { return nil, err }
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ollama error: %s", string(body))
-	}
-
-	var result struct {
-		Response string `json:"response"`
-	}
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	var action BrowserAction
-	if err := json.Unmarshal([]byte(result.Response), &action); err != nil {
-		return nil, fmt.Errorf("failed to parse navigator JSON: %v", err)
-	}
-
-	return &action, nil
+	return nil, fmt.Errorf("navigator failed after 3 attempts: %v", lastError)
 }
