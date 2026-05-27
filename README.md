@@ -1,12 +1,24 @@
 # musu-nurikun
 
-> **The Autonomous Email Agent — Inbound Support & Compliant Opt-in Outreach.**
+> Compliant email operations for support inboxes and opt-in outreach.
 
 `musu-nurikun` is the "Hand" of the Musu ecosystem. It works a service mailbox you
 own: triaging and answering inbound customer email, and sending **opt-in** mailing-list
 campaigns at a controlled cadence. It only ever emails people who subscribed
 themselves — there is no cold outreach, no scraped lists, no fake identities, and no
 anti-spam evasion.
+
+## What It Is
+
+- A Go email agent for inbound support triage and grounded replies
+- An opt-in campaign sender with double opt-in, suppression, and unsubscribe controls
+- A project-local operations tool designed to be safe enough for real mailbox workflows
+
+## Best For
+
+- support inbox triage with human escalation
+- compliant newsletters and lifecycle campaigns
+- teams that want mailbox automation without scraped leads or spammy growth hacks
 
 ---
 
@@ -49,6 +61,12 @@ Drop it into any project: point it at a mailbox, choose a knowledge source, and 
 ./musu-nurikun watch        # inbound: triage + reply per policy
 ./musu-nurikun campaign send weekly-digest   # outbound: opt-in subscribers only
 ```
+
+Core flow:
+1. scaffold a project with the right mailbox/knowledge preset
+2. fill credentials and delivery settings
+3. run `doctor`
+4. start `watch` or `campaign`
 
 > Requires an OpenAI-compatible AI endpoint (e.g. [Ollama](https://ollama.com)) for triage/reply.
 >
