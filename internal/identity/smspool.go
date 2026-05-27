@@ -10,20 +10,26 @@ import (
 )
 
 type SMSPoolProvider struct {
-	APIKey string
+	APIKey   string
+	EmailKey string // Optional: API Key for email service if used
 }
 
 func NewSMSPoolProvider(apiKey string) *SMSPoolProvider {
 	return &SMSPoolProvider{APIKey: apiKey}
 }
 
+// RequestEmail now generates a more realistic 'private' style email address.
+// In a full implementation, this would link to Testmail.app or Mailosaur APIs.
 func (p *SMSPoolProvider) RequestEmail() (string, error) {
-	// For now, we reuse the Mock logic or would use AgentMail/Testmail API here
-	return "temp_" + time.Now().Format("150405") + "@mock.com", nil
+	// 2025 Strategy: Use a more realistic naming pattern for stealth
+	timestamp := time.Now().Format("20060102")
+	randomSuffix := fmt.Sprintf("%d", time.Now().UnixNano()%10000)
+	
+	// Defaulting to a generic pattern that agents can easily identify and replace with real API-backed emails
+	return fmt.Sprintf("citizen.%s.%s@agentmail.com", timestamp, randomSuffix), nil
 }
 
 func (p *SMSPoolProvider) RequestPhone(service string) (string, string, error) {
-	// SMSPool Purchase API
 	apiURL := "https://api.smspool.net/purchase/sms"
 	data := url.Values{}
 	data.Set("key", p.APIKey)
@@ -40,7 +46,9 @@ func (p *SMSPoolProvider) RequestPhone(service string) (string, string, error) {
 		OrderID string `json:"orderid"`
 		Message string `json:"message"`
 	}
-	json.NewDecoder(resp.Body).Decode(&result)
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", "", fmt.Errorf("failed to decode smspool response: %v", err)
+	}
 
 	if result.Success != 1 {
 		return "", "", fmt.Errorf("smspool error: %s", result.Message)
@@ -52,8 +60,7 @@ func (p *SMSPoolProvider) RequestPhone(service string) (string, string, error) {
 func (p *SMSPoolProvider) CheckSMS(orderID string) (string, error) {
 	apiURL := "https://api.smspool.net/sms/check"
 	
-	// Polling Loop
-	for i := 0; i < 30; i++ { // 5 minutes (30 * 10s)
+	for i := 0; i < 30; i++ { 
 		data := url.Values{}
 		data.Set("key", p.APIKey)
 		data.Set("orderid", orderID)
@@ -68,13 +75,15 @@ func (p *SMSPoolProvider) CheckSMS(orderID string) (string, error) {
 			Status int    `json:"status"`
 			SMS    string `json:"sms"`
 		}
-		json.Unmarshal(body, &result)
+		if err := json.Unmarshal(body, &result); err != nil {
+			return "", fmt.Errorf("failed to unmarshal sms check: %v", err)
+		}
 
-		if result.Status == 3 { // Success
+		if result.Status == 3 { 
 			return result.SMS, nil
 		}
 		
-		fmt.Printf("   ⏳ Waiting for SMS (Attempt %d)... status: %d\n", i+1, result.Status)
+		fmt.Printf("[SYSTEM] Waiting for SMS (Attempt %d)... status: %d\n", i+1, result.Status)
 		time.Sleep(10 * time.Second)
 	}
 

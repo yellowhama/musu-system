@@ -1,7 +1,9 @@
 package browser
 
 import (
+	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/playwright-community/playwright-go"
 )
@@ -69,7 +71,6 @@ func NewWalker(project string) (*Walker, error) {
 			return imageData;
 		};
 	`
-	// Fixed: Proper signature for AddInitScript on context using playwright.Script
 	err = context.AddInitScript(playwright.Script{
 		Content: playwright.String(antiDetectScript),
 	})
@@ -109,6 +110,40 @@ func (w *Walker) HumanClick(page playwright.Page, selector string) error {
 	w.LastPos = target
 	
 	return page.Mouse().Click(target.X, target.Y)
+}
+
+// HumanScroll mimics a person reading by scrolling in chunks with pauses.
+func (w *Walker) HumanScroll(page playwright.Page) error {
+	steps := rand.Intn(3) + 2
+	for i := 0; i < steps; i++ {
+		scrollAmt := rand.Intn(400) + 100
+		if rand.Float64() > 0.8 { scrollAmt = -scrollAmt / 2 } // Occasional scroll up
+
+		_, err := page.Evaluate(fmt.Sprintf("window.scrollBy(0, %d)", scrollAmt))
+		if err != nil { return err }
+		
+		time.Sleep(time.Duration(rand.Intn(2000)+500) * time.Millisecond)
+	}
+	return nil
+}
+
+// HumanHover randomly moves the mouse to an interactive element.
+func (w *Walker) HumanHover(page playwright.Page) error {
+	elements, err := page.Locator("a, button, [role='button']").All()
+	if err != nil || len(elements) == 0 { return nil }
+
+	targetEl := elements[rand.Intn(len(elements))]
+	box, err := targetEl.BoundingBox()
+	if err != nil { return nil }
+
+	target := Point{
+		X: box.X + box.Width/2,
+		Y: box.Y + box.Height/2,
+	}
+
+	if err := MoveMouseHumanLike(page.Mouse(), w.LastPos, target); err != nil { return err }
+	w.LastPos = target
+	return nil
 }
 
 func (w *Walker) Close() {

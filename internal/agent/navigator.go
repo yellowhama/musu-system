@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -14,7 +13,7 @@ import (
 type Navigator struct {
 	OllamaURL  string
 	Model      string
-	httpClient *http.Client // Optimized: Reusable client pool
+	httpClient *http.Client
 }
 
 type BrowserAction struct {
@@ -29,10 +28,10 @@ func NewNavigator(model string) *Navigator {
 		OllamaURL: "http://localhost:11434/api/generate",
 		Model:     model,
 		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+			Timeout: 30 * time.Second,
 			Transport: &http.Transport{
-				MaxIdleConns:        10,
-				IdleConnTimeout:     90 * time.Second,
+				MaxIdleConns:    10,
+				IdleConnTimeout: 90 * time.Second,
 			},
 		},
 	}
@@ -58,34 +57,27 @@ func (n *Navigator) DetermineNextAction(goal string, page playwright.Page) (*Bro
 	}`)
 	if err != nil { return nil, err }
 
-	domData, _ := json.Marshal(domJSON)
+	domData, _ := json.MarshalIndent(domJSON, "", "  ")
 
 	var lastError error
 	var currentFeedback string
 
-	// ⚡ Agentic Self-Correction Loop (Max 3 retries)
+	// ⚡ Agentic Self-Correction & Handover Loop
 	for attempt := 1; attempt <= 3; attempt++ {
 		feedbackSection := ""
 		if currentFeedback != "" {
-			feedbackSection = fmt.Sprintf("\n\n### PREVIOUS ERROR ###\nYour last response was invalid: %s. Please fix the JSON format and try again.", currentFeedback)
+			feedbackSection = fmt.Sprintf("\n\n### PREVIOUS ERROR ###\nYour last response was invalid: %s.", currentFeedback)
 		}
 
-		prompt := fmt.Sprintf(`You are an Expert Browser Navigator.
+		prompt := fmt.Sprintf(`### MISSION ###
 Goal: %s
 Current URL: %s
 
-Interactive Elements (JSON):
+### DOM ELEMENTS ###
 %s
 %s
 
-Identify the next step to reach the goal. Use specific selectors like [id='...'], [name='...'], or text='...'.
-Output in strict JSON:
-{
-  "action": "click | fill | wait | done",
-  "selector": "CSS selector",
-  "value": "text (if filling)",
-  "reason": "short explanation"
-}`, goal, page.URL(), string(domData), feedbackSection)
+Identify the next action. Output in strict JSON.`, goal, page.URL(), string(domData), feedbackSection)
 
 		reqBody := map[string]interface{}{
 			"model":  n.Model,
@@ -95,38 +87,36 @@ Output in strict JSON:
 		}
 
 		jsonData, _ := json.Marshal(reqBody)
+		
+		// 🛠️ SURGICAL FIX: Do not return 'err' directly. Wrap it in AGENT_REQUIRED to trigger handover.
 		resp, err := n.httpClient.Post(n.OllamaURL, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
-			lastError = err
-			continue
+			return nil, fmt.Errorf("AGENT_REQUIRED: Ollama unreachable: %v. DOM:\n%s", err, string(domData))
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != 200 {
-			body, _ := io.ReadAll(resp.Body)
-			lastError = fmt.Errorf("ollama error %d: %s", resp.StatusCode, string(body))
-			continue
+			return nil, fmt.Errorf("AGENT_REQUIRED: Ollama error %d. DOM:\n%s", resp.StatusCode, string(domData))
 		}
 
 		var result struct {
 			Response string `json:"response"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-			currentFeedback = fmt.Sprintf("Failed to decode Ollama wrapper: %v", err)
+			currentFeedback = "JSON Decode failed"
 			lastError = err
 			continue
 		}
 
 		var action BrowserAction
 		if err := json.Unmarshal([]byte(result.Response), &action); err != nil {
-			currentFeedback = fmt.Sprintf("Failed to parse inner action JSON: %v", err)
+			currentFeedback = "Invalid JSON structure"
 			lastError = err
 			continue
 		}
 
-		// Success!
 		return &action, nil
 	}
 
-	return nil, fmt.Errorf("navigator failed after 3 attempts: %v", lastError)
+	return nil, fmt.Errorf("AGENT_REQUIRED: All attempts failed (%v). DOM:\n%s", lastError, string(domData))
 }

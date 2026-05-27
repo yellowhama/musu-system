@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,9 +42,11 @@ var signupCmd = &cobra.Command{
 			return
 		}
 
+		var meta db.IdentityMetadata
+		json.Unmarshal([]byte(ident.Metadata), &meta)
+
 		fmt.Printf("🐣 Starting autonomous signup for %s using identity: %s\n", platform, ident.Name)
 
-		// 1. Initialize Stealth Walker
 		walker, err := browser.NewWalker(project)
 		if err != nil {
 			fmt.Printf("❌ Walker Error: %v\n", err)
@@ -50,7 +54,6 @@ var signupCmd = &cobra.Command{
 		}
 		defer walker.Close()
 
-		// 2. Initial Navigation
 		targetURL := ""
 		switch strings.ToLower(platform) {
 		case "reddit":
@@ -66,54 +69,77 @@ var signupCmd = &cobra.Command{
 			fmt.Printf("❌ Navigation failed: %v\n", err)
 			return
 		}
-		defer page.Close() // Ensure page is closed
+		defer page.Close() 
 
-		// 3. Cognitive Loop
 		navigator := agent.NewNavigator("llama3")
-		goal := fmt.Sprintf("Register a new account on %s for %s (%s).", platform, ident.Name, ident.Email)
+		goal := fmt.Sprintf(`Register a new account on %s for %s (%s).`, platform, ident.Name, ident.Email)
 
-		for i := 0; i < 15; i++ {
+		reader := bufio.NewReader(os.Stdin)
+
+		for i := 0; i < 20; i++ {
 			fmt.Printf("\n🧠 Step %d: Consulting AI for next action...\n", i+1)
+			
 			action, err := navigator.DetermineNextAction(goal, page)
+			
+			// ⚡ Agentic Handover Logic (Refined)
 			if err != nil {
-				fmt.Printf("❌ AI Error: %v\n", err)
-				break
+				if strings.Contains(err.Error(), "AGENT_REQUIRED") {
+					fmt.Println("\n⚠️  AGENT INTERVENTION REQUIRED")
+					fmt.Println(err.Error()) // Prints DOM
+					
+					shotPath := filepath.Join("projects", project, "screenshots", fmt.Sprintf("step_%d.png", i+1))
+					os.MkdirAll(filepath.Dir(shotPath), 0755)
+					page.Screenshot(playwright.PageScreenshotOptions{Path: playwright.String(shotPath)})
+					fmt.Printf("📸 Screenshot saved to: %s\n", shotPath)
+					
+					fmt.Println("\n👉 Agent, provide next action JSON (or type 'done'):")
+					fmt.Print("INSTRUCTION > ")
+					
+					input, _ := reader.ReadString('\n')
+					input = strings.TrimSpace(input)
+					if input == "done" {
+						break
+					}
+					
+					action = &agent.BrowserAction{}
+					if uErr := json.Unmarshal([]byte(input), &action); uErr != nil {
+						fmt.Printf("❌ Invalid JSON: %v. Retrying...\n", uErr)
+						continue
+					}
+				} else {
+					fmt.Printf("❌ Fatal Error: %v\n", err)
+					break
+				}
 			}
 
-			fmt.Printf("🎯 Action: %s on %s | Reason: %s\n", action.Action, action.Selector, action.Reason)
+			fmt.Printf("🎯 Executing Action: %s on %s | Reason: %s\n", action.Action, action.Selector, action.Reason)
 
 			if action.Action == "done" {
 				fmt.Println("🎉 AI claims registration is complete!")
 				break
 			}
 
-			// Execute Action via Stealth Walker
 			switch action.Action {
 			case "click":
 				err = walker.HumanClick(page, action.Selector)
 			case "fill":
 				val := action.Value
-				lowerSel := strings.ToLower(action.Selector)
-				if strings.Contains(lowerSel, "email") { val = ident.Email }
-				if strings.Contains(lowerSel, "user") || strings.Contains(lowerSel, "name") { val = ident.Name }
+				lowSel := strings.ToLower(action.Selector)
+				if strings.Contains(lowSel, "email") { val = ident.Email }
+				if strings.Contains(lowSel, "user") || strings.Contains(lowSel, "name") { val = ident.Name }
+				if strings.Contains(lowSel, "pass") { val = meta.EmailPassword }
 				err = page.Fill(action.Selector, val)
 			case "wait":
 				time.Sleep(5 * time.Second)
 			}
 
 			if err != nil {
-				fmt.Printf("   ⚠️  Action failed: %v\n", err)
+				fmt.Printf("   ⚠️  Action execution failed: %v\n", err)
 			}
-
 			time.Sleep(2 * time.Second)
 		}
 
 		fmt.Printf("\n🏁 Autonomous signup session ended.\n")
-		shotPath := filepath.Join("projects", project, "screenshots", "signup_final.png")
-		os.MkdirAll(filepath.Dir(shotPath), 0755)
-		page.Screenshot(playwright.PageScreenshotOptions{
-			Path: playwright.String(shotPath),
-		})
 	},
 }
 

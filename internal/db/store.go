@@ -10,9 +10,21 @@ type Identity struct {
 	Name      string
 	Email     string
 	Phone     string
-	Metadata  string // JSON blob
+	Metadata  string // JSON blob: IdentityMetadata
 	Status    string
 	CreatedAt string
+}
+
+// IdentityMetadata stores complex profile and credentials info
+type IdentityMetadata struct {
+	EmailPassword string   `json:"email_password,omitempty"`
+	Provider      string   `json:"provider,omitempty"`
+	Job           string   `json:"job,omitempty"`
+	Backstory     string   `json:"backstory,omitempty"`
+	Tone          string   `json:"tone,omitempty"`
+	Interests     []string `json:"interests,omitempty"`
+	BioShort      string   `json:"bio_short,omitempty"`
+	AvatarPath    string   `json:"avatar_path,omitempty"` // New: path to generated image
 }
 
 type Store struct {
@@ -60,7 +72,7 @@ func (s *Store) ListIdentities() ([]Identity, error) {
 	var list []Identity
 	for rows.Next() {
 		var i Identity
-		rows.Scan(&i.ID, &i.Name, &i.Status)
+		if err := rows.Scan(&i.ID, &i.Name, &i.Status); err != nil { continue }
 		list = append(list, i)
 	}
 	return list, nil
