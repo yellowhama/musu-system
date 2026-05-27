@@ -8,12 +8,17 @@ import (
 	"github.com/spf13/viper"
 )
 
-const Version = "v0.2.2"
+const Version = "v0.3.0"
 
 var rootCmd = &cobra.Command{
-	Use:     "musu-nurikun",
-	Short:   "Autonomous Digital Citizen Agent",
-	Long:    `Engineered to acquire digital identities, register on platforms, and interact autonomously.`,
+	Use:   "musu-nurikun",
+	Short: "Autonomous email agent — opt-in mailing lists & inbound support",
+	Long: `musu-nurikun is the "Hand" of the Musu ecosystem: an autonomous email agent.
+
+It handles inbound customer support (triage, grounded replies, escalation) and
+compliant outbound campaigns to opt-in subscribers (self-subscribe + double
+opt-in, controlled cadence, one-click unsubscribe). It emails only people who
+subscribed themselves — no cold outreach, no fake identities, no anti-detection.`,
 	Version: Version,
 }
 
@@ -26,8 +31,10 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringP("project", "p", "default", "Project name to scope the identities")
+	rootCmd.PersistentFlags().StringP("project", "p", "default", "Project name to scope mailboxes, lists, and contacts")
+	rootCmd.PersistentFlags().String("ai-url", "http://localhost:11434/v1", "OpenAI-compatible AI base URL")
 	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
+	viper.BindPFlag("ai_url", rootCmd.PersistentFlags().Lookup("ai-url"))
 }
 
 func initConfig() {
