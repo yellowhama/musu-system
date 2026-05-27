@@ -7,6 +7,7 @@ mail, or evades spam detection — emailing only self-subscribed, confirmed reci
 
 ## 🏗️ Action Primitives
 Inbound:
+- **`doctor`** — run first. It checks project config, mailbox settings, knowledge source wiring, AI endpoint reachability, and can safely recreate a missing scaffold with `--fix`.
 - **`watch`** — fetch inbound mail, triage it, draft a grounded reply, then auto-send
   high-confidence allow-listed replies or escalate/draft the rest for a human.
 - **`reply --id N [--send]`** — print or send a stored drafted/escalated reply.
@@ -24,6 +25,10 @@ Outbound (opt-in only):
 Per project `config.yaml` or env (`NURIKUN_*`): `mailbox_provider` (imap|gmail) + creds,
 `knowledge_source` (crawlai|folder|none), `ai_url` (OpenAI-compatible), sender identity,
 `public_base_url` + `unsub_secret` for signed unsubscribe links.
+
+Bootstrap symmetry matters:
+- `init --mailbox-provider ... --knowledge-source ...` sets the initial config shape.
+- `doctor --fix --mailbox-provider ... --knowledge-source ...` now uses the same presets when recreating a missing scaffold.
 
 ## 🤝 Ecosystem Collaboration
 1. **KNOWLEDGE** — `musu-crawl-ai` harvests product docs/FAQ; set `knowledge_source=crawlai`

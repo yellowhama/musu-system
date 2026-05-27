@@ -42,11 +42,16 @@ v0.3.0 pivot.
 - One-click unsubscribe links are HMAC-signed (`unsub_secret`); set `public_base_url`
   so campaigns embed links pointing at `serve`. Without them, campaigns fall back to a
   `mailto:` unsubscribe.
+- `doctor --fix` now accepts the same preset knobs as `init`:
+  - `--mailbox-provider imap|gmail`
+  - `--knowledge-source none|crawlai|folder`
+  This keeps project bootstrap semantics aligned between first-time setup and scaffold recovery.
 
 ## 🚧 Not yet done / future
 - Live send/receive verification against a real mailbox.
 - A confirm/unsubscribe landing-page UI (currently plain-text responses).
 - Outbound campaign personalization via a shared `musu-marketer` persona.
+- More guided mailbox bootstrap / OAuth setup UX.
 
 ---
 **Status:** 📬 EMAIL AGENT (v0.3.0)

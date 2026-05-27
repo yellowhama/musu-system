@@ -41,13 +41,32 @@ Drop it into any project: point it at a mailbox, choose a knowledge source, and 
 ## 🛠️ Quick Start
 
 ```bash
-./musu-nurikun init --project acme-support
+./musu-nurikun init --project acme-support --mailbox-provider imap --knowledge-source crawlai
 # configure mailbox + knowledge source in projects/acme-support/config.yaml
+./musu-nurikun doctor --project acme-support
+./musu-nurikun doctor --project acme-support --json
+./musu-nurikun doctor --project acme-support --fix --mailbox-provider imap --knowledge-source crawlai
 ./musu-nurikun watch        # inbound: triage + reply per policy
 ./musu-nurikun campaign send weekly-digest   # outbound: opt-in subscribers only
 ```
 
 > Requires an OpenAI-compatible AI endpoint (e.g. [Ollama](https://ollama.com)) for triage/reply.
+>
+> `init` now writes a commented config template so you can fill in IMAP/SMTP or Gmail settings directly.
+> Use `--mailbox-provider imap|gmail` and `--knowledge-source none|crawlai|folder` to generate a closer first draft of the config.
+> `doctor --fix` can recreate a missing local project scaffold/config, but mailbox credentials and public delivery settings still need to be filled in manually.
+
+Example bootstrap presets:
+```bash
+./musu-nurikun init --project acme-support --mailbox-provider imap --knowledge-source crawlai
+./musu-nurikun init --project acme-news --mailbox-provider gmail --knowledge-source folder
+```
+
+If your local `musu-nurikun.exe --help` still shows old commands like `roam`, `signup`, or `forge`, the binary is stale. Rebuild from the current source before using it:
+
+```bash
+go build -o musu-nurikun.exe .
+```
 
 ---
 
