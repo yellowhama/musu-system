@@ -11,6 +11,13 @@ import (
 	"github.com/yellowhama/musu-nurikun/internal/db"
 )
 
+func writeIfMissing(path string, content string) error {
+	if _, err := os.Stat(path); err == nil {
+		return nil
+	}
+	return os.WriteFile(path, []byte(content), 0644)
+}
+
 func discoverCrawlWiki() string {
 	candidates := []string{
 		"F:/Aisaak/Projects/musu-crawl-ai/wiki",
@@ -113,24 +120,75 @@ unsub_secret: ""
 	if verbose {
 		fmt.Printf("✅ Project configuration saved: %s\n", configPath)
 	}
+
+	if knowledgeDir != "" {
+		knowledgeReadmePath := filepath.Join(baseDir, "knowledge", "README.md")
+		knowledgeReadme := `# Local Knowledge Folder
+
+Drop Markdown or plain-text files here when ` + "`knowledge_source: folder`" + ` is selected.
+
+Recommended contents:
+- FAQ.md
+- shipping.md
+- billing.md
+- refund-policy.md
+`
+		if err := writeIfMissing(knowledgeReadmePath, knowledgeReadme); err != nil {
+			return "", "", fmt.Errorf("write knowledge readme: %w", err)
+		}
+		if verbose {
+			fmt.Printf("✅ Knowledge folder guide ready: %s\n", knowledgeReadmePath)
+		}
+	}
+
+	setupGuidePath := filepath.Join(baseDir, "SETUP.md")
+	setupGuide := fmt.Sprintf("# Setup Checklist: %s\n\n1. Fill mailbox credentials in `config.yaml` for `%s`.\n2. Set `public_base_url` to the externally reachable URL of `musu-nurikun serve`.\n3. Set a strong `unsub_secret` for signed one-click unsubscribe links.\n4. If `knowledge_source: %s`, review the referenced knowledge path before running `watch` or `campaign`.\n5. Run `musu-nurikun doctor --project %s` until it passes.\n", project, mailboxProvider, knowledgeSource, project)
+	if err := writeIfMissing(setupGuidePath, setupGuide); err != nil {
+		return "", "", fmt.Errorf("write setup guide: %w", err)
+	}
+	if verbose {
+		fmt.Printf("✅ Setup guide ready: %s\n", setupGuidePath)
+	}
 	return baseDir, configPath, nil
 }
 
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize musu-nurikun environment",
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		project := viper.GetString("project")
 		mailboxProvider, _ := cmd.Flags().GetString("mailbox-provider")
 		knowledgeSource, _ := cmd.Flags().GetString("knowledge-source")
-		fmt.Printf("📬 Initializing musu-nurikun for project '%s' (Version %s)...\n", project, Version)
+		jsonMode := viper.GetBool("json")
+		if !jsonMode {
+			fmt.Printf("📬 Initializing musu-nurikun for project '%s' (Version %s)...\n", project, Version)
+		}
 
-		if _, configPath, err := bootstrapProject(project, true, mailboxProvider, knowledgeSource); err != nil {
-			fmt.Printf("❌ Failed to initialize project: %v\n", err)
-			return
-		} else {
+		baseDir, configPath, err := bootstrapProject(project, !jsonMode, mailboxProvider, knowledgeSource)
+		if err != nil {
+			return err
+		}
+
+		dbPath := filepath.Join(baseDir, "data", "nurikun.db")
+		result := map[string]interface{}{
+			"project":           project,
+			"project_dir":       baseDir,
+			"config_path":       configPath,
+			"db_path":           dbPath,
+			"mailbox_provider":  mailboxProvider,
+			"knowledge_source":  knowledgeSource,
+			"ai_url":            viper.GetString("ai_url"),
+			"setup_guide_path":  filepath.Join(baseDir, "SETUP.md"),
+			"next_steps": []string{
+				fmt.Sprintf("fill mailbox credentials and public delivery settings in %s", configPath),
+				fmt.Sprintf("run 'musu-nurikun doctor --project %s'", project),
+			},
+		}
+		if !jsonMode {
 			fmt.Printf("\n✨ Initialization complete! Next: configure your mailbox (IMAP/SMTP or Gmail) and knowledge source in %s\n", configPath)
 		}
+		printJSONSuccess("Project initialized", result)
+		return nil
 	},
 }
 

@@ -1,0 +1,27 @@
+db_path: ./projects/acme-news/data/nurikun.db
+ai_provider: ollama
+ai_model: llama3
+ai_url: http://localhost:11434/v1
+
+mailbox_provider: gmail
+imap_host: ""
+imap_port: 993
+imap_user: ""
+imap_pass: ""
+smtp_host: ""
+smtp_port: 587
+smtp_user: ""
+smtp_pass: ""
+smtp_from: newsletter@example.com
+gmail_credentials: C:/path/to/credentials.json
+gmail_token: C:/path/to/token.json
+
+knowledge_source: folder
+crawl_path: ""
+knowledge_dir: ./projects/acme-news/knowledge
+
+sender_name: Example News
+sender_address: newsletter@example.com
+sender_physical: 123 Example-ro, Seoul
+public_base_url: https://mail.example.com
+unsub_secret: "<set-strong-secret>"

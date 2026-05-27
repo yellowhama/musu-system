@@ -23,6 +23,8 @@
 - `projects/<project>/config.yaml`
 - `projects/<project>/data/nurikun.db`
 - `projects/<project>/knowledge`
+- `projects/<project>/SETUP.md`
+- `projects/<project>/knowledge/README.md` for folder-based setups
 
 ## Docs
 - `README.md`: operator quick start
@@ -32,3 +34,7 @@
 - `CODE_MAP.md`: code/doc index
 - `QUALITATIVE_REPORT.md`: current quality verdict
 - `NEXT_STEPS.md`: planned follow-up work
+
+## Examples
+- `examples/config.imap.yaml`: sample IMAP/SMTP project config
+- `examples/config.gmail.yaml`: sample Gmail OAuth project config

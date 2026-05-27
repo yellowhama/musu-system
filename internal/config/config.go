@@ -68,8 +68,8 @@ func Load(project string) (*Config, error) {
 	return &Config{
 		Project:    project,
 		AIModel:    v.GetString("ai_model"),
-		AIBaseURL:  v.GetString("ai_url"),
-		AIProvider: v.GetString("ai_provider"),
+		AIBaseURL:  firstNonEmpty(viper.GetString("ai_url"), v.GetString("ai_url")),
+		AIProvider: firstNonEmpty(viper.GetString("ai_provider"), v.GetString("ai_provider")),
 
 		MailboxProvider:  v.GetString("mailbox_provider"),
 		IMAPHost:         v.GetString("imap_host"),
@@ -97,4 +97,13 @@ func Load(project string) (*Config, error) {
 
 		Policy: policy.DefaultConfig(),
 	}, nil
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }

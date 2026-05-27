@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -26,6 +27,20 @@ subscribed themselves — no cold outreach, no fake identities, no anti-detectio
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		if viper.GetBool("json") {
+			if err.Error() == "doctor found blocking issues" {
+				os.Exit(1)
+			}
+			fix := ""
+			if strings.Contains(err.Error(), "arg(s)") {
+				fix = "Check 'musu-nurikun [command] --help' for argument requirements."
+			}
+			if fix == "" {
+				fix = "Check 'musu-nurikun [command] --help' for command usage and required flags."
+			}
+			printJSONError(err, nil, fix)
+			os.Exit(1)
+		}
 		if !viper.GetBool("json") {
 			fmt.Println(err)
 		}

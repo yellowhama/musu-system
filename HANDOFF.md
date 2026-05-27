@@ -16,6 +16,7 @@
 - added `doctor --fix`
 - aligned `doctor --fix` with `init` by accepting `--mailbox-provider` and `--knowledge-source`
 - rebuilt the tracked exe so the binary matches the current source/README command surface
+- `init` now writes a project-local `SETUP.md`, optional folder knowledge guide, and machine-readable bootstrap metadata
 
 ## Operator Flow
 1. `musu-nurikun init --project <name> --mailbox-provider imap|gmail --knowledge-source crawlai|folder|none`
@@ -26,7 +27,7 @@
 ## Known Constraints
 - mailbox/OAuth bootstrap still requires manual operator credentials
 - `doctor` is comprehensive, but it is still one command file doing report + fix orchestration
-- `public_base_url` and `unsub_secret` remain manual to avoid accidental weak defaults
+- `public_base_url` and `unsub_secret` remain manual to avoid accidental weak defaults, and `doctor` now treats them as blocking readiness requirements
 
 ## Key Files
 - `cmd/root.go`: global flags and JSON mode
@@ -37,3 +38,5 @@
 - `internal/mailbox/*`: IMAP/Gmail integrations
 - `internal/knowledge/*`: crawl-ai/folder/none sources
 - `internal/compliance/*`: unsubscribe/rate-limit/policy helpers
+- `projects/<project>/SETUP.md`
+- `projects/<project>/knowledge/README.md` when `knowledge_source=folder`

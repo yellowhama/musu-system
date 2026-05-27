@@ -54,13 +54,24 @@ Drop it into any project: point it at a mailbox, choose a knowledge source, and 
 >
 > `init` now writes a commented config template so you can fill in IMAP/SMTP or Gmail settings directly.
 > Use `--mailbox-provider imap|gmail` and `--knowledge-source none|crawlai|folder` to generate a closer first draft of the config.
+> `init --json` now returns the scaffold paths, selected presets, and the exact next setup steps for agent-to-agent handoff.
 > `doctor --fix` can recreate a missing local project scaffold/config, but mailbox credentials and public delivery settings still need to be filled in manually.
+> `doctor` will continue to fail until `public_base_url` and `unsub_secret` are set, because confirmation and one-click unsubscribe links are part of the operational contract.
+> JSON mode now uses the same top-level envelope as the other Musu tools: `status`, `message`, `data`, `actionable_fix`.
+> Local command-level smoke coverage now exercises both `watch` and `campaign` against a fake mailbox provider, so the inbox and compliant send loops are verified without live mailbox credentials.
+> For a real endpoint-backed verification of the `watch` command, set `MUSU_NURIKUN_INTEGRATION_AI_URL` and run `go test -tags integration ./cmd`, or use `scripts/run-real-integration.ps1`.
+> Set `MUSU_NURIKUN_INTEGRATION_MODEL` when the reachable endpoint exposes a chat model other than the default `llama3`.
+> The runner auto-probes `OLLAMA_HOST`, `127.0.0.1:11434`, and `localhost:11434`, checks both `/v1/models` and Ollama `/api/tags`, and prints explicit diagnostics when no reachable endpoint exists.
+> Use `-Json -ProbeOnly` when another agent or CI step needs machine-readable integration readiness output without actually running the integration-tag tests.
+> The JSON doctor now emits `issue_codes` such as `ollama_host_unspecified_bind_address`, `ollama_not_installed`, `localhost_probe_timeout`, and `missing_required_model`.
 
 Example bootstrap presets:
 ```bash
 ./musu-nurikun init --project acme-support --mailbox-provider imap --knowledge-source crawlai
 ./musu-nurikun init --project acme-news --mailbox-provider gmail --knowledge-source folder
 ```
+
+Reference config samples live under `examples/config.imap.yaml` and `examples/config.gmail.yaml`.
 
 If your local `musu-nurikun.exe --help` still shows old commands like `roam`, `signup`, or `forge`, the binary is stale. Rebuild from the current source before using it:
 
