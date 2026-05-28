@@ -1,12 +1,23 @@
 # syntax=docker/dockerfile:1.7
-# Multi-stage Go build → alpine runtime. See musu-crawl-ai/Dockerfile for the
-# rationale of alpine vs distroless. Base images pinned by digest.
+# Multi-stage Go build → alpine runtime. See crawl-ai/Dockerfile for the
+# rationale of alpine vs distroless and the monorepo build-context handling.
+# Base images pinned by digest.
 
 FROM golang:1.26-bookworm@sha256:386d475a660466863d9f8c766fec64d7fdad3edac2c6a05020c09534d71edb4b AS build
 WORKDIR /src
-COPY go.mod go.sum ./
+
+COPY core/go.mod core/go.sum ./core/
+COPY marketer/go.mod marketer/go.sum ./marketer/
+
+WORKDIR /src/marketer
+ENV GOWORK=off
 RUN go mod download
-COPY . .
+
+WORKDIR /src
+COPY core ./core
+COPY marketer ./marketer
+
+WORKDIR /src/marketer
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/musu-marketer .
 
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
