@@ -35,35 +35,57 @@ func startMCPServer() {
 	s := server.NewMCPServer("musu-nurikun", Version)
 
 	s.AddTool(mcp.NewTool("doctor",
-		mcp.WithDescription("Run nurikun preflight for a project (config/mailbox/knowledge/AI reachability). Args: project (string, optional)"),
+		mcp.WithDescription("Run nurikun preflight for a project (config / mailbox / knowledge / AI reachability)"),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPDoctor))
 
 	s.AddTool(mcp.NewTool("list_lists",
-		mcp.WithDescription("List mailing lists for a project. Args: project (string, optional)"),
+		mcp.WithDescription("List mailing lists for a project"),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPListLists))
 
 	s.AddTool(mcp.NewTool("create_list",
-		mcp.WithDescription("Create a new opt-in mailing list. Args: name (string, required), cadence_days (int, default 4), project (string, optional)"),
+		mcp.WithDescription("Create a new opt-in mailing list"),
+		mcp.WithString("name", mcp.Required(), mcp.Description("List name (must be unique within the project)")),
+		mcp.WithNumber("cadence_days", mcp.Description("Minimum days between sends to the same subscriber (default: 4)")),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPCreateList))
 
 	s.AddTool(mcp.NewTool("subscribe",
-		mcp.WithDescription("Record a pending subscriber (returns the double-opt-in confirm token; the subscriber is NOT mailable until confirmed). Args: list_id (int, required), email (string, required), name (string, optional), project (string, optional)"),
+		mcp.WithDescription("Record a pending subscriber (returns the double-opt-in confirm token; the subscriber is NOT mailable until confirmed)"),
+		mcp.WithNumber("list_id", mcp.Required(), mcp.Description("Target list ID")),
+		mcp.WithString("email", mcp.Required(), mcp.Description("Subscriber email address")),
+		mcp.WithString("name", mcp.Description("Optional display name")),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPSubscribe))
 
 	s.AddTool(mcp.NewTool("confirm_subscriber",
-		mcp.WithDescription("Confirm a pending subscriber by its token. Args: token (string, required), project (string, optional)"),
+		mcp.WithDescription("Confirm a pending subscriber by its double opt-in token"),
+		mcp.WithString("token", mcp.Required(), mcp.Description("Confirmation token returned by 'subscribe'")),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPConfirm))
 
 	s.AddTool(mcp.NewTool("list_subscribers",
-		mcp.WithDescription("List every subscriber of a list with status. Args: list_id (int, required), project (string, optional)"),
+		mcp.WithDescription("List every subscriber of a list with status (pending / confirmed / unsubscribed)"),
+		mcp.WithNumber("list_id", mcp.Required(), mcp.Description("List ID to enumerate")),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPListSubscribers))
 
 	s.AddTool(mcp.NewTool("suppress",
-		mcp.WithDescription("Unsubscribe an email and add it to the suppression list. Args: email (string, required), reason (string, optional), project (string, optional)"),
+		mcp.WithDescription("Unsubscribe an email and add it to the suppression list (the hard send-time gate)"),
+		mcp.WithString("email", mcp.Required(), mcp.Description("Email to suppress")),
+		mcp.WithString("reason", mcp.Description("Reason for the suppression (default: 'mcp')")),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPSuppress))
 
 	s.AddTool(mcp.NewTool("messages_by_status",
-		mcp.WithDescription("List stored messages filtered by status. Args: status (one of: received|drafted|sent|escalated), project (string, optional)"),
+		mcp.WithDescription("List stored messages filtered by status"),
+		mcp.WithString("status",
+			mcp.Required(),
+			mcp.Description("Status filter"),
+			mcp.Enum("received", "drafted", "sent", "escalated"),
+		),
+		mcp.WithString("project", mcp.Description("Project scope (default: 'default')")),
 	), wrap(handleMCPMessagesByStatus))
 
 	fmt.Fprintf(os.Stderr, "🚀 musu-nurikun MCP Server %s started on stdio\n", Version)
