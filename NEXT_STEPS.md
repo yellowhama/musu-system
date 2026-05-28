@@ -9,13 +9,14 @@
 ## P2
 - deepen marketer persona integration for campaign tone consistency
 - a real mailbox/bootstrap smoke path or staged operator checklist around Gmail/IMAP credentials
-- document the `claude mcp add -s user … --env NURIKUN_GMAIL_TOKEN=… --env NURIKUN_UNSUB_SECRET=…` registration pattern in README/AGENTS so the MCP server inherits operator secrets instead of running with default-only config
+- ~~document the `claude mcp add -s user … --env NURIKUN_GMAIL_TOKEN=… --env NURIKUN_UNSUB_SECRET=…` registration pattern in README/AGENTS~~ — CLOSED 2026-05-28 (`c4176ea`, F6 audit)
 
 ## P3
 - a confirm/unsubscribe landing-page UI (currently plain-text responses)
 - ~~production hardening on the docker-compose bundle: TLS termination via reverse proxy, log rotation, image registry push, scheduled `watch`/`campaign` (ofelia sidecar or host cron)~~ — CLOSED 2026-05-28. Caddy `tls` profile (auto-HTTPS) verified end-to-end through `/healthz`, x-logging anchor (10MB×3 rotation), `.github/workflows/docker-publish.yml` for GHCR push, ofelia `scheduler` profile firing `nurikun watch` (live verified at @every 30s, then reverted to @every 10m; docker.sock RW fix proven).
 - real-domain Let's Encrypt verification — replace `localhost` block in `caddy/Caddyfile` with a public DNS name + verify Let's Encrypt issues a real cert (current verification used Caddy's internal CA / self-signed)
-- first real GHCR push validation — operator pushes a `vX.Y.Z` tag and confirms the workflow publishes `ghcr.io/yellowhama/musu-nurikun:vX.Y.Z` + `:latest`
+- ~~first real GHCR push validation — operator pushes a `vX.Y.Z` tag and confirms the workflow publishes `ghcr.io/yellowhama/musu-nurikun:vX.Y.Z` + `:latest`~~ — VALIDATED 2026-05-28 against musu-marketer (`v2.0.4` published end-to-end with multi-arch amd64+arm64 + Trivy CRITICAL/HIGH scan + SARIF upload, ~8.4 min total). Same workflow shape applies here — first nurikun tag (`vX.Y.Z`) push will publish to `ghcr.io/yellowhama/musu-nurikun`.
+- ~~Trivy CRITICAL/HIGH scan + SARIF upload in docker-publish workflow~~ — CLOSED 2026-05-28 (`6e866b6`, action `aquasecurity/trivy-action@v0.36.0`)
 - enable `[job-exec "nurikun-campaign-weekly-digest"]` in `ofelia/config.ini` only after a real subscriber list exists and a manual `campaign send` dry-run has passed
 
 ## Verified Integration Harness
