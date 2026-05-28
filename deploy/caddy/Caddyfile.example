@@ -1,0 +1,62 @@
+# Caddy reverse proxy — terminates TLS in front of musu services.
+#
+# Copy to Caddyfile (no .example) and replace the example hostnames with
+# your real public DNS names. On first start Caddy will request Let's
+# Encrypt certs via HTTP-01 / TLS-ALPN-01 — ports 80 + 443 must reach the
+# host from the public internet.
+#
+# For LOCAL DEV (no public DNS): uncomment the `localhost` block below and
+# comment out the production `nurikun.example.com` block. Caddy will issue
+# its own internal cert (browser warning expected; curl -k to bypass).
+#
+# Why nurikun is the priority: recipients click the unsubscribe link in
+# campaign emails — that URL must be real HTTPS or major inbox providers
+# (Gmail, Outlook) will strip / flag it. Set NURIKUN_PUBLIC_BASE_URL in .env
+# to the same hostname so campaigns embed matching links.
+
+{
+    # Email used by Let's Encrypt for expiry / revocation notices.
+    # Set ACME_EMAIL in .env (or override here directly). Default placeholder
+    # discards notices, which is fine for dev but bad for prod.
+    email {$ACME_EMAIL:you@example.com}
+}
+
+# === PRODUCTION (public domain + real cert via Let's Encrypt) ===
+# REQUIRED — nurikun unsubscribe / confirm web endpoints.
+nurikun.example.com {
+    reverse_proxy nurikun:8088
+    encode gzip
+    log {
+        output stdout
+        format json
+    }
+}
+
+# === LOCAL DEV (self-signed via Caddy's internal CA) ===
+# Uncomment this and comment the production block above to test the TLS
+# profile without owning a public domain.
+#
+# localhost {
+#     reverse_proxy nurikun:8088
+#     tls internal
+# }
+
+# === OPTIONAL — crawl dashboard ===
+# The dashboard has no auth out of the box; gate it with Caddy basic_auth
+# or an SSO sidecar before exposing publicly.
+#
+# crawl.example.com {
+#     basic_auth {
+#         operator $2a$14$<bcrypt-hash-of-your-password>
+#     }
+#     reverse_proxy crawl:8080
+# }
+
+# === OPTIONAL — marketer REST API. Same auth caveat. ===
+#
+# marketer.example.com {
+#     basic_auth {
+#         api $2a$14$<bcrypt-hash>
+#     }
+#     reverse_proxy marketer:8081
+# }

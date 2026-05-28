@@ -1,0 +1,35 @@
+# Build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go cache / module cache
+/.go/
+
+# Operator runtime state (gitignored; structure tracked via deploy/README.md)
+/var/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local env
+.env
+.env.local
+
+# Per-service runtime data (legacy paths — projects-* / wiki / oauth)
+/projects-*/
+/wiki/
+/oauth/
+
+# Trial / scratch
+/_qc_tmp/
+
+# Coverage
+*.coverprofile
+coverage.txt

@@ -1,0 +1,224 @@
+# Musu ecosystem — one-command bring-up of Ollama + 3 services.
+#
+# Bring up (dev — builds locally):
+#   docker compose up -d --build
+#
+# Bring up with hardening (TLS reverse proxy + scheduled watch):
+#   docker compose --profile tls --profile scheduler up -d --build
+#
+# Bring up production (pull pre-built images from GHCR):
+#   export MUSU_VERSION=v0.3.0
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml \
+#     --profile tls --profile scheduler up -d
+#
+# First-run setup (one-time):
+#   1. cp .env.example .env  — fill the nurikun outbound vars
+#   2. Bootstrap Gmail OAuth on the host (browser consent):
+#        .\musu-nurikun\musu-nurikun.exe gmail-token \
+#          --credentials .\oauth\credentials.json \
+#          --out .\oauth\token.json
+#   3. (TLS profile) cp caddy/Caddyfile.example caddy/Caddyfile and edit
+#   4. docker compose up -d --build
+#   5. docker compose exec ollama ollama pull ${OLLAMA_CHAT_MODEL:-llama3.2:1b}
+#
+# Endpoints:
+#   ollama   :11434   /v1 (OpenAI-compat) + /api (native)
+#   crawl    :8090 (host) → :8080 (container)   web dashboard
+#                       (host 8080 commonly held by Docker Desktop backend)
+#   marketer :8081    REST API
+#   nurikun  :8088    /unsubscribe + /confirm + /healthz
+#   caddy    :80 + :443  TLS-terminating reverse proxy (profile=tls)
+#
+# ⚠️ NOT auto-running daemons (intentional — opt-in posture):
+#   • crawl serve  = DASHBOARD ONLY. Harvesting needs `docker compose run --rm
+#                    crawl fetch <source> <url> --project <name>`
+#   • nurikun watch / campaign  = ONE-SHOT. Either run via `docker compose run
+#                    --rm nurikun watch ...` on demand, or enable the
+#                    `scheduler` profile to have ofelia exec watch on a cron.
+#
+# Note on ollama tag: pinning by digest requires pre-pulling the multi-GB
+# image. We keep :latest here and recommend the operator `docker compose pull
+# ollama` before any production cutover so the version is captured locally.
+#
+# Log rotation: every service caps its JSON log file at 10MB × 3 rotations
+# (30MB max on disk) so the Docker default of unlimited growth does not eat
+# the operator's disk over long uptimes.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: musu-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    logging: *default-logging
+
+  crawl:
+    build:
+      context: ..
+      dockerfile: crawl-ai/Dockerfile
+    image: musu-crawl:dev
+    container_name: musu-crawl
+    command: ["serve", "--out", "/wiki", "--port", "8080", "--project", "all"]
+    ports:
+      # Host 8080 is commonly held on Windows by Docker Desktop's own backend
+      # — publish on 8090 instead. Container still listens on 8080.
+      - "8090:8080"
+    volumes:
+      - ../var/wiki:/wiki
+    environment:
+      MUSU_AI_URL: http://ollama:11434/v1
+      MUSU_AI_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.2:1b}
+      MUSU_AI_PROVIDER: ollama
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  marketer:
+    build:
+      context: ..
+      dockerfile: marketer/Dockerfile
+    image: musu-marketer:dev
+    container_name: musu-marketer
+    command: ["serve", "--port", "8081"]
+    ports:
+      - "8081:8081"
+    volumes:
+      - ../var/projects-marketer:/app/projects
+      - ../var/wiki:/wiki:ro
+    environment:
+      MUSU_AI_URL: http://ollama:11434/v1
+      MUSU_AI_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.2:1b}
+      MUSU_WIKI_DIR: /wiki
+    depends_on:
+      # marketer only shares a filesystem volume (/wiki) with crawl, not an
+      # API. No need to wait on crawl being healthy — they are independent
+      # daemons that read the same on-disk wiki.
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8081"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  nurikun:
+    build:
+      context: ..
+      dockerfile: nurikun/Dockerfile
+    image: musu-nurikun:dev
+    container_name: musu-nurikun
+    command: ["serve", "--project", "default", "--addr", ":8088"]
+    ports:
+      - "8088:8088"
+    volumes:
+      - ../var/projects-nurikun:/app/projects
+      - ../var/oauth:/oauth:ro
+    environment:
+      NURIKUN_AI_URL: http://ollama:11434/v1
+      NURIKUN_AI_MODEL: ${OLLAMA_CHAT_MODEL:-llama3.2:1b}
+      NURIKUN_MAILBOX_PROVIDER: ${NURIKUN_MAILBOX_PROVIDER:-gmail}
+      NURIKUN_GMAIL_CREDENTIALS: /oauth/credentials.json
+      NURIKUN_GMAIL_TOKEN: /oauth/token.json
+      NURIKUN_KNOWLEDGE_SOURCE: ${NURIKUN_KNOWLEDGE_SOURCE:-none}
+      NURIKUN_PUBLIC_BASE_URL: ${NURIKUN_PUBLIC_BASE_URL:-http://localhost:8088}
+      NURIKUN_UNSUB_SECRET: ${NURIKUN_UNSUB_SECRET}
+      NURIKUN_SENDER_NAME: ${NURIKUN_SENDER_NAME}
+      NURIKUN_SENDER_ADDRESS: ${NURIKUN_SENDER_ADDRESS}
+      NURIKUN_SENDER_PHYSICAL: ${NURIKUN_SENDER_PHYSICAL}
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--tries=1", "--timeout=3", "http://localhost:8088/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    logging: *default-logging
+
+  # ---- Hardening profiles (opt-in) ----
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: musu-caddy
+    profiles: [tls]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      nurikun:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  ofelia:
+    image: mcuadros/ofelia:latest
+    container_name: musu-ofelia
+    profiles: [scheduler]
+    command: ["daemon", "--config=/etc/ofelia/config.ini"]
+    volumes:
+      - ./ofelia/config.ini:/etc/ofelia/config.ini:ro
+      # ofelia needs RW on the docker socket to call `docker exec` against
+      # the running musu-nurikun container. Mounting :ro looks tighter but
+      # silently breaks `job-exec` at firing time (works for inspect, fails
+      # for exec). Project containers themselves carry the actual auth/state.
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      nurikun:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      # ofelia's alpine base ships busybox `grep` but not `pgrep`. Confirm
+      # PID 1 is still the ofelia binary by reading /proc/1/cmdline. If
+      # PID 1 dies the container exits, so this mostly normalises the
+      # `compose ps` annotation (Up → Up (healthy)).
+      test: ["CMD-SHELL", "grep -q ofelia /proc/1/cmdline"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    logging: *default-logging
+
+volumes:
+  ollama_data:
+  caddy_data:
+  caddy_config:

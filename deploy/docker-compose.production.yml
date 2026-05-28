@@ -1,0 +1,24 @@
+# Production overlay — pull pre-built images from GHCR instead of building
+# locally. Use after a tagged release has been published by the per-repo
+# .github/workflows/docker-publish.yml.
+#
+# Usage:
+#   export MUSU_VERSION=v0.3.0   # match a tag pushed to each repo
+#   docker compose -f docker-compose.yml -f docker-compose.production.yml \
+#     --profile tls --profile scheduler up -d
+#
+# This file ONLY overrides the build/image directives. All env, volume,
+# healthcheck, depends_on, logging config stays in docker-compose.yml.
+
+services:
+  crawl:
+    build: !reset null
+    image: ghcr.io/yellowhama/musu-crawl-ai:${MUSU_VERSION:-latest}
+
+  marketer:
+    build: !reset null
+    image: ghcr.io/yellowhama/musu-marketer:${MUSU_VERSION:-latest}
+
+  nurikun:
+    build: !reset null
+    image: ghcr.io/yellowhama/musu-nurikun:${MUSU_VERSION:-latest}

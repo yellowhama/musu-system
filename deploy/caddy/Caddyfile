@@ -1,0 +1,14 @@
+# Active Caddyfile — copied from Caddyfile.example and tuned for THIS host.
+# Currently configured for LOCAL DEV (self-signed via Caddy's internal CA).
+# Switch to a real domain block when you have public DNS.
+
+{
+    email you@example.com
+}
+
+# Local dev — self-signed cert via Caddy's internal CA.
+# Browser will warn; `curl -k https://localhost/...` to bypass.
+localhost {
+    reverse_proxy nurikun:8088
+    tls internal
+}
