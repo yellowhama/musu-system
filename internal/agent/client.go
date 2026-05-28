@@ -52,13 +52,18 @@ func NewAgentClient(baseURL, model, wikiDir, project string) *AgentClient {
 func (c *AgentClient) logTrace(trace ExecutionTrace) {
 	date := time.Now().Format("2006-01-02")
 	logDir := filepath.Join(c.WikiDir, "telemetry", date)
-	os.MkdirAll(logDir, 0755)
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "telemetry: mkdir %s: %v\n", logDir, err)
+		return
+	}
 
 	filename := fmt.Sprintf("%s_%s_%d.json", trace.Role, c.Project, time.Now().UnixNano())
 	path := filepath.Join(logDir, filename)
 
 	data, _ := json.MarshalIndent(trace, "", "  ")
-	os.WriteFile(path, data, 0644)
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "telemetry: write %s: %v\n", path, err)
+	}
 }
 
 type ChatMessage struct {

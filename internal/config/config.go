@@ -104,15 +104,6 @@ func Load(project string) (*Config, error) {
 	}, nil
 }
 
-func firstNonEmpty(values ...string) string {
-	for _, value := range values {
-		if value != "" {
-			return value
-		}
-	}
-	return ""
-}
-
 func valueString(v *viper.Viper, projectEnv map[string]string, key string, envKey string) string {
 	if value, ok := os.LookupEnv(envKey); ok && strings.TrimSpace(value) != "" {
 		return value
