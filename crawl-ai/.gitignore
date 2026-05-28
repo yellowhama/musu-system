@@ -1,0 +1,29 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Data Silos (Private User Content)
+wiki/
+projects/
+data/
+published/
+screenshots/
+logs/
+
+# Configuration & Secrets
+.env
+config.yaml
+*.db
+*.db-journal
+
+# Go
+vendor/
+obj/
+bin/
+
+# OS
+.DS_Store
+Thumbs.db
