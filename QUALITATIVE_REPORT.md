@@ -17,6 +17,9 @@
 - the real integration path is now model-configurable through `MUSU_NURIKUN_INTEGRATION_MODEL`
 - a real Ollama-backed `watch` integration pass was verified with `llama3.2:1b`
 - project-local `.env` loading and preset bootstrap artifacts now reduce mailbox/OAuth setup friction materially
+- dead `firstNonEmpty` helper removed and telemetry I/O failures no longer swallowed
+- the compiled binary is no longer tracked in git, ending stale-exe drift
+- live HTTP roundtrip verified — `serve` + HMAC-signed `/unsubscribe` + web `/confirm` + tamper rejection all e2e-verified, including external openssl-signed payloads interoperating with `compliance.SignUnsub`
 
 ## Strong Points
 - clear post-pivot product boundary

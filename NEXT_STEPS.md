@@ -10,6 +10,8 @@
 
 ## P3
 - add Gmail token/bootstrap operator docs and a tighter first-run checklist around the sample configs
+- extract shared module(s) for `AgentClient` + `preflight/doctor` + env-loader to remove triple-duplicated logic across the three repos
+- run a live mailbox roundtrip (real IMAP/Gmail + Ollama) to close the only remaining "untested in production" gate
 
 ## Verified Integration Harness
 - set `MUSU_NURIKUN_INTEGRATION_AI_URL`

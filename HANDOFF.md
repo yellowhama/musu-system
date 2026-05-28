@@ -19,6 +19,10 @@
 - `init` now writes a project-local `SETUP.md`, optional folder knowledge guide, and machine-readable bootstrap metadata
 - `init` now also writes `.env.example`, `bootstrap.ps1`, and Gmail `oauth/README.md`
 - runtime config now loads project-local `.env` as a secrets layer above `config.yaml`
+- removed dead `firstNonEmpty` helper from `internal/config` (superseded by `valueString`/`valueInt`)
+- telemetry `logTrace` I/O errors are now logged to stderr instead of swallowed
+- the compiled `musu-nurikun.exe` is no longer tracked in git (already in `.gitignore`; the local file is retained)
+- live HTTP roundtrip verified end-to-end: `serve` + signed `/unsubscribe` + web `/confirm` + tamper rejection (externally-computed openssl HMAC signatures interoperate with `compliance.SignUnsub`)
 
 ## Operator Flow
 1. `musu-nurikun init --project <name> --mailbox-provider imap|gmail --knowledge-source crawlai|folder|none`

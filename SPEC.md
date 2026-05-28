@@ -30,6 +30,12 @@ v0.3.0 pivot.
 - [x] **Web endpoints:** `serve` exposes HMAC-signed one-click `/unsubscribe` and
       double opt-in `/confirm`.
 
+### v0.3.x — Hardening + live verification
+- [x] Removed dead `firstNonEmpty` helper (superseded by env-aware `valueString`/`valueInt`).
+- [x] Telemetry `logTrace` I/O errors surfaced to stderr (no silently-lost traces).
+- [x] Compiled `musu-nurikun.exe` no longer tracked in git (already gitignored).
+- [x] **Live HTTP roundtrip verified** — `serve` + HMAC-signed `/unsubscribe` + web `/confirm` + tamper rejection (HTTP 400) all end-to-end verified. Externally-computed (openssl) HMAC signatures interoperate with `compliance.SignUnsub`, confirming the RFC 8058 one-click unsubscribe surface is real and not self-referential.
+
 ## 🔌 Configurable per deployment (ship-anywhere)
 - **Mailbox** — `imap` (IMAP fetch + SMTP send) or `gmail` (API), via `mailbox_provider`.
 - **Knowledge** — `crawlai` (RAG over a musu-crawl-ai wiki), `folder` (local docs), or `none`.
