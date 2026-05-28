@@ -152,7 +152,13 @@ func runGmailTokenBootstrap(credsPath, outPath string, port int, noOpen bool) er
 func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "windows":
-		return exec.Command("cmd", "/c", "start", "", url).Start()
+		// NOTE: do NOT use `cmd /c start "" <url>` here — cmd.exe re-parses
+		// the command line and treats unquoted `&` in OAuth URLs (which
+		// separate query parameters) as command separators, truncating the
+		// URL and producing "invalid_request: Required parameter is missing"
+		// errors from Google. rundll32 passes the URL straight to the shell
+		// URL handler with no re-parsing.
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
 	case "darwin":
 		return exec.Command("open", url).Start()
 	default:
