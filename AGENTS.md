@@ -36,6 +36,52 @@ Bootstrap symmetry matters:
 2. **VOICE** — reuse a `musu-marketer` persona for consistent tone in replies/campaigns.
 3. **HAND** — `musu-nurikun` triages inbound and sends opt-in campaigns.
 
+## 🔌 MCP Server Registration
+
+The MCP server inherits its environment from the registering process. Naive `claude mcp add` registrations end up running with default-only config (`localhost:11434/v1`, no Gmail creds, no public base URL, etc.) — `doctor` then reports everything missing.
+
+Register with explicit `--env` flags so the server sees the same secrets your shell does:
+
+```powershell
+# Windows / PowerShell
+claude mcp add -s user musu-nurikun `
+  -- musu-nurikun.exe mcp `
+  --env NURIKUN_AI_URL=http://localhost:11434/v1 `
+  --env NURIKUN_AI_MODEL=llama3.2:1b `
+  --env NURIKUN_MAILBOX_PROVIDER=gmail `
+  --env NURIKUN_GMAIL_CREDENTIALS=$env:USERPROFILE\.config\nurikun\credentials.json `
+  --env NURIKUN_GMAIL_TOKEN=$env:USERPROFILE\.config\nurikun\token.json `
+  --env NURIKUN_KNOWLEDGE_SOURCE=crawlai `
+  --env NURIKUN_PUBLIC_BASE_URL=https://your.domain.example `
+  --env NURIKUN_UNSUB_SECRET=$env:NURIKUN_UNSUB_SECRET `
+  --env NURIKUN_SENDER_NAME="Your Sender Name" `
+  --env NURIKUN_SENDER_ADDRESS=you@yourdomain.com `
+  --env NURIKUN_SENDER_PHYSICAL="Your mailing address"
+```
+
+```bash
+# Linux / macOS
+claude mcp add -s user musu-nurikun \
+  -- musu-nurikun mcp \
+  --env NURIKUN_AI_URL=http://localhost:11434/v1 \
+  --env NURIKUN_AI_MODEL=llama3.2:1b \
+  --env NURIKUN_MAILBOX_PROVIDER=gmail \
+  --env NURIKUN_GMAIL_CREDENTIALS=$HOME/.config/nurikun/credentials.json \
+  --env NURIKUN_GMAIL_TOKEN=$HOME/.config/nurikun/token.json \
+  --env NURIKUN_KNOWLEDGE_SOURCE=crawlai \
+  --env NURIKUN_PUBLIC_BASE_URL=https://your.domain.example \
+  --env NURIKUN_UNSUB_SECRET=$NURIKUN_UNSUB_SECRET \
+  --env NURIKUN_SENDER_NAME="Your Sender Name" \
+  --env NURIKUN_SENDER_ADDRESS=you@yourdomain.com \
+  --env NURIKUN_SENDER_PHYSICAL="Your mailing address"
+```
+
+Restart your Claude session after `claude mcp add` — tool schemas are read at session start. Verify by calling the `doctor` MCP tool and confirming it returns your real config (mailbox provider, public base URL, sender identity) — not the default fallback.
+
+The MCP server exposes 8 safe ops: `doctor`, `list_lists`, `create_list`, `subscribe`, `confirm_subscriber`, `list_subscribers`, `suppress`, `messages_by_status`.
+
+> **Note:** delivery ops (`watch`, `campaign`, `serve`) are intentionally CLI-only — keeping anything that actually puts mail on the wire in human-in-the-loop territory. This is part of the opt-in posture; **never** wrap them as MCP tools.
+
 ## 🛑 Critical Mandates
 - **Opt-in only.** Never email an address that is not `confirmed`. The suppression list
   is authoritative and is re-checked at send time; never bypass it.
