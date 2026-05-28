@@ -1,0 +1,117 @@
+name: Publish container image to GHCR
+
+# One consolidated workflow for the 3 service images. Triggered by
+# path-prefixed semver tags (e.g. marketer/v2.0.5) — the prefix selects
+# which service builds, the version becomes the image tag.
+#
+# Image paths intentionally keep the old per-repo naming (no /musu/ path
+# segment) so existing `docker pull ghcr.io/yellowhama/musu-marketer:vX`
+# in the wild keeps resolving. The monorepo writes to the same GHCR
+# packages; old/new image versions coexist.
+#
+# Architectures: linux/amd64 + linux/arm64 (Apple Silicon + Raspberry Pi).
+# Trivy CRITICAL/HIGH scan runs after publish; results land in the repo
+# Security tab via SARIF upload (does not gate the publish).
+
+on:
+  push:
+    tags:
+      - 'core/v[0-9]+.[0-9]+.[0-9]+'
+      - 'core/v[0-9]+.[0-9]+.[0-9]+-*'
+      - 'crawl-ai/v[0-9]+.[0-9]+.[0-9]+'
+      - 'crawl-ai/v[0-9]+.[0-9]+.[0-9]+-*'
+      - 'marketer/v[0-9]+.[0-9]+.[0-9]+'
+      - 'marketer/v[0-9]+.[0-9]+.[0-9]+-*'
+      - 'nurikun/v[0-9]+.[0-9]+.[0-9]+'
+      - 'nurikun/v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: "Service to publish (crawl-ai | marketer | nurikun)"
+        required: true
+        type: choice
+        options: [crawl-ai, marketer, nurikun]
+      version:
+        description: "Version tag (vX.Y.Z form)"
+        required: true
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      service: ${{ steps.parse.outputs.service }}
+      version: ${{ steps.parse.outputs.version }}
+      buildable: ${{ steps.parse.outputs.buildable }}
+    steps:
+      - id: parse
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            svc="${{ inputs.service }}"
+            ver="${{ inputs.version }}"
+          else
+            ref="${{ github.ref_name }}"
+            svc="${ref%%/*}"
+            ver="${ref#*/}"
+          fi
+          # core/ tags don't ship as container images — they're Go module
+          # version pins only. Stop the workflow gracefully in that case.
+          buildable=true
+          if [ "$svc" = "core" ]; then
+            buildable=false
+            echo "::notice::core/ tag detected — Go module version only, no container image published."
+          fi
+          echo "service=$svc"   >> "$GITHUB_OUTPUT"
+          echo "version=$ver"   >> "$GITHUB_OUTPUT"
+          echo "buildable=$buildable" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    needs: resolve
+    if: needs.resolve.outputs.buildable == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ needs.resolve.outputs.service }}/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ghcr.io/yellowhama/musu-${{ needs.resolve.outputs.service }}:${{ needs.resolve.outputs.version }}
+            ghcr.io/yellowhama/musu-${{ needs.resolve.outputs.service }}:latest
+          cache-from: type=gha,scope=${{ needs.resolve.outputs.service }}
+          cache-to:   type=gha,scope=${{ needs.resolve.outputs.service }},mode=max
+
+      - name: Trivy CRITICAL/HIGH vulnerability scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/yellowhama/musu-${{ needs.resolve.outputs.service }}:${{ needs.resolve.outputs.version }}
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'   # visibility first; finding does not block publish
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy-${{ needs.resolve.outputs.service }}-${{ needs.resolve.outputs.version }}

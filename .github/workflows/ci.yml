@@ -1,0 +1,41 @@
+name: CI
+
+# Runs on every PR + push to main. Per-module build/vet/test against the
+# Go workspace pinned in go.work. None of the legacy repos had this — the
+# monorepo benefits because cross-module changes (e.g. a core/ refactor)
+# now must keep all three services green in a single PR.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+      - name: Build (per-module via workspace)
+        run: |
+          for d in core crawl-ai marketer nurikun; do
+            echo "::group::build $d"
+            (cd "$d" && go build ./...)
+            echo "::endgroup::"
+          done
+      - name: Vet
+        run: |
+          for d in core crawl-ai marketer nurikun; do
+            (cd "$d" && go vet ./...)
+          done
+      - name: Test
+        run: |
+          for d in core crawl-ai marketer nurikun; do
+            echo "::group::test $d"
+            (cd "$d" && go test -race ./...)
+            echo "::endgroup::"
+          done
