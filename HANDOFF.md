@@ -23,6 +23,12 @@
 - telemetry `logTrace` I/O errors are now logged to stderr instead of swallowed
 - the compiled `musu-nurikun.exe` is no longer tracked in git (already in `.gitignore`; the local file is retained)
 - live HTTP roundtrip verified end-to-end: `serve` + signed `/unsubscribe` + web `/confirm` + tamper rejection (externally-computed openssl HMAC signatures interoperate with `compliance.SignUnsub`)
+- `internal/agent`, `internal/config`, `internal/preflight` now thin wrappers over `github.com/yellowhama/musu-core@v0.1.0` (env/agent/preflight). 689 LOC ecosystem-wide deduplication
+- `gmail-token` cmd added (one-off OAuth bootstrap via local loopback callback) + Gmail API live verified against a real account
+- `cmd/mcp.go` added (8 safe ops as MCP tools; delivery ops intentionally CLI-only). MCP tool parameter schemas declared via `WithString`/`WithNumber`/`Required`/`Enum` — clients can actually pass args
+- `db.NewStore` now `MkdirAll(filepath.Dir(path))` before `sql.Open` so cwd-isolated MCP invocations succeed
+- `preflight.DoctorResult` JSON envelope uses snake_case tags (consistent with inner Report)
+- Dockerfile added (alpine runtime, digest-pinned base) + brings up under top-level docker-compose alongside ollama/crawl/marketer. End-to-end `compose up` verified healthy.
 
 ## Operator Flow
 1. `musu-nurikun init --project <name> --mailbox-provider imap|gmail --knowledge-source crawlai|folder|none`

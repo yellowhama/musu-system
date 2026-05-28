@@ -9,6 +9,9 @@
 - `cmd/campaign.go`: outbound opt-in sending
 - `cmd/lists.go`, `cmd/subscribe.go`, `cmd/confirm.go`, `cmd/suppress.go`: consent and list management
 - `cmd/serve.go`: confirm/unsubscribe web endpoints
+- `cmd/mcp.go`: MCP server exposing 8 safe ops (delivery ops CLI-only)
+- `cmd/gmail_token.go`: one-off OAuth bootstrap (local loopback callback)
+- `Dockerfile`: alpine runtime image (digest-pinned golang build stage); see top-level `docker-compose.yml`
 
 ## Core Packages
 - `internal/config`: config loading

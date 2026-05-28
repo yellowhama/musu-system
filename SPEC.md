@@ -35,6 +35,14 @@ v0.3.0 pivot.
 - [x] Telemetry `logTrace` I/O errors surfaced to stderr (no silently-lost traces).
 - [x] Compiled `musu-nurikun.exe` no longer tracked in git (already gitignored).
 - [x] **Live HTTP roundtrip verified** — `serve` + HMAC-signed `/unsubscribe` + web `/confirm` + tamper rejection (HTTP 400) all end-to-end verified. Externally-computed (openssl) HMAC signatures interoperate with `compliance.SignUnsub`, confirming the RFC 8058 one-click unsubscribe surface is real and not self-referential.
+- [x] **Shared module integration**: `internal/agent/client.go`, `internal/config/config.go`, `internal/preflight/doctor.go` now thin wrappers over `github.com/yellowhama/musu-core/{agent,env,preflight}` v0.1.0 (689 LOC ecosystem-wide deduplication, see `project_musu_core_shared_module`).
+- [x] **`gmail-token` bootstrap command** — one-off OAuth consent → `token.json` (refresh_token included) with local loopback callback. Closes the manual OAuth provisioning friction; rundll32-based browser open avoids cmd.exe `&` URL truncation.
+- [x] **Live Gmail API verified** — token.json successfully authenticated against real Gmail (`gmail.users.getProfile → ceo@yellowhama.com`).
+- [x] **MCP server exposure** — `cmd/mcp.go` exposes 8 safe ops as MCP tools (doctor, list_lists, create_list, subscribe, confirm_subscriber, list_subscribers, suppress, messages_by_status); delivery ops (`watch`, `campaign`) intentionally CLI-only.
+- [x] **MCP tool schemas declared** — `WithString`/`WithNumber`/`Required`/`Enum` properly attached (was empty schema, blocking client args).
+- [x] **`db.NewStore` MkdirAll(parent)** — cwd-isolated invocations (e.g. MCP servers) no longer fail with SQLITE_CANTOPEN on missing project dirs.
+- [x] **`preflight.DoctorResult` JSON envelope** — snake_case `json` tags so MCP envelope is consistent with the inner Report.
+- [x] **Docker deploy bundle** — Dockerfile (alpine + digest-pinned golang) committed; brings up under the top-level docker-compose with crawl/marketer/ollama via shared volumes. End-to-end `compose up` verified healthy.
 
 ## 🔌 Configurable per deployment (ship-anywhere)
 - **Mailbox** — `imap` (IMAP fetch + SMTP send) or `gmail` (API), via `mailbox_provider`.

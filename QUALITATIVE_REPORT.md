@@ -20,6 +20,11 @@
 - dead `firstNonEmpty` helper removed and telemetry I/O failures no longer swallowed
 - the compiled binary is no longer tracked in git, ending stale-exe drift
 - live HTTP roundtrip verified — `serve` + HMAC-signed `/unsubscribe` + web `/confirm` + tamper rejection all e2e-verified, including external openssl-signed payloads interoperating with `compliance.SignUnsub`
+- triple-duplicated LLM/config/preflight scaffolding consolidated into `github.com/yellowhama/musu-core@v0.1.0` (env, agent, preflight); internal/agent/config/preflight are now thin wrappers
+- `gmail-token` bootstrap closes the manual OAuth provisioning friction; verified live against a real Gmail account (`gmail.users.getProfile` succeeded)
+- MCP layer exposes 8 safe ops to other LLM agents; declared parameter schemas make those tools actually callable (previous empty-schema state was effectively a black hole for clients)
+- delivery ops (`watch`/`campaign`) are intentionally not on the MCP surface — keeps the opt-in posture defensible at the agent-to-agent integration layer
+- Docker deploy bundle brings the full ecosystem up under one compose with ollama, healthchecks, and end-to-end probe verification
 
 ## Strong Points
 - clear post-pivot product boundary
@@ -33,9 +38,9 @@
 - mailbox bootstrap still depends on operator-supplied secrets and URLs that cannot be safely defaulted
 
 ## Thermo Verdict
-`PASS WITH CONCERNS`
+`PASS` (no [CRITICAL]/[HIGH]/[MEDIUM]/[LOW] open, as of 2026-05-28 audit — see `C:\Users\empty\MUSU_THERMONUCLEAR_REVIEW_2026-05-28.md`)
 
 ## Immediate Priorities
-1. build a lightweight setup wizard or guided bootstrap around the sample configs
-2. add a real mailbox/bootstrap smoke path or staged operator checklist around Gmail/IMAP credentials
-3. add tighter operator docs for Gmail token/bootstrap and public delivery settings
+1. live `watch`/`campaign` roundtrip against real Gmail (Ollama + creds in place; one operator session away)
+2. lightweight setup wizard for first-time mailbox + knowledge source picking (the `--mailbox-provider`/`--knowledge-source` presets exist, but a guided TUI/REPL would help newcomers)
+3. document the `claude mcp add --env NURIKUN_GMAIL_TOKEN=… --env NURIKUN_UNSUB_SECRET=…` registration pattern in README/AGENTS so MCP clients inherit operator secrets
