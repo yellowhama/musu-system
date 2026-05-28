@@ -44,6 +44,8 @@
 # (30MB max on disk) so the Docker default of unlimited growth does not eat
 # the operator's disk over long uptimes.
 
+name: musu-system   # `docker compose ps` shows project=musu-system instead of basename "deploy"
+
 x-logging: &default-logging
   driver: json-file
   options:

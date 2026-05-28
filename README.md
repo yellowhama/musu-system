@@ -63,7 +63,26 @@ Consolidated 2026-05-28 from four prior repos:
 - `github.com/yellowhama/musu-marketer`  → `marketer/`
 - `github.com/yellowhama/musu-nurikun`   → `nurikun/`
 
-Original SHAs preserved via `git subtree add`. `git log <merged-commit-sha>`
-traces file history through the original module's commits (path-filtered
-`git log -- <prefix>/file` only shows the merge commit; this is a known
-git-subtree limitation).
+Original commit SHAs are preserved via `git subtree add` — every legacy
+commit is still reachable in the monorepo by its original hash. **However**,
+path-filtered `git log -- <prefix>/<file>` will only show the subtree merge
+commit, NOT the file's true history. This is because pre-merge commits
+recorded the file at its root-relative path (e.g. `cmd/fetch.go`), not the
+prefixed path (`crawl-ai/cmd/fetch.go`).
+
+To trace file history correctly, pick one:
+
+```bash
+# 1. Origin-relative path on the full graph (recommended)
+git log --all --follow -- cmd/fetch.go
+
+# 2. Specific origin SHA -> walk back
+git log <merge-commit-sha> -- cmd/fetch.go
+
+# 3. Subtree split the prefix into a temporary branch
+git subtree split --prefix=crawl-ai -b crawl-ai-history
+git log crawl-ai-history -- cmd/fetch.go
+```
+
+The legacy origin repos (kept read-only during the 2-week observation
+window) remain a clean reference for plain `git log` UX during that time.
