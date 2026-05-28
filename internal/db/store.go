@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	_ "modernc.org/sqlite"
 )
@@ -56,6 +58,14 @@ type Campaign struct {
 type Store struct{ db *sql.DB }
 
 func NewStore(dbPath string) (*Store, error) {
+	// Ensure the parent directory exists so cwd-isolated invocations (notably
+	// MCP servers spawned from a different cwd than the user's CLI) don't
+	// fail with SQLITE_CANTOPEN on a missing projects/<name>/data/ tree.
+	if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return nil, fmt.Errorf("create db dir %s: %w", dir, err)
+		}
+	}
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, err

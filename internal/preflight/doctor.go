@@ -36,9 +36,9 @@ type DoctorReport struct {
 }
 
 type DoctorResult struct {
-	Report        DoctorReport
-	Blocking      bool
-	ActionableFix string
+	Report        DoctorReport `json:"report"`
+	Blocking      bool         `json:"blocking"`
+	ActionableFix string       `json:"actionable_fix"`
 }
 
 func EvaluateDoctor(opts DoctorOptions) DoctorResult {
