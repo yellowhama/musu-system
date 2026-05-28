@@ -12,6 +12,7 @@
 - `cmd/mcp.go`: MCP server exposing 8 safe ops (delivery ops CLI-only)
 - `cmd/gmail_token.go`: one-off OAuth bootstrap (local loopback callback)
 - `Dockerfile`: alpine runtime image (digest-pinned golang build stage); see top-level `docker-compose.yml`
+- `.github/workflows/docker-publish.yml`: tag-triggered multi-arch (amd64+arm64) GHCR publish to `ghcr.io/yellowhama/musu-nurikun`
 
 ## Core Packages
 - `internal/config`: config loading

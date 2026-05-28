@@ -25,6 +25,7 @@
 - MCP layer exposes 8 safe ops to other LLM agents; declared parameter schemas make those tools actually callable (previous empty-schema state was effectively a black hole for clients)
 - delivery ops (`watch`/`campaign`) are intentionally not on the MCP surface — keeps the opt-in posture defensible at the agent-to-agent integration layer
 - Docker deploy bundle brings the full ecosystem up under one compose with ollama, healthchecks, and end-to-end probe verification
+- production hardening track shipped at the operator-local layer: x-logging anchor (10MB×3 rotation per service), opt-in `tls` profile (Caddy auto-HTTPS, live-verified through `/healthz` with self-signed cert), opt-in `scheduler` profile (ofelia firing `nurikun watch` on a cron, docker.sock RW fix verified by 2 live firings + clean exit codes), `docker-compose.production.yml` GHCR overlay, `.github/workflows/docker-publish.yml` for multi-arch (amd64+arm64) tag-triggered image publish
 
 ## Strong Points
 - clear post-pivot product boundary
