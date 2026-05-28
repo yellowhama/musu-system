@@ -75,22 +75,36 @@ func runGmailTokenBootstrap(credsPath, outPath string, port int, noOpen bool) er
 	resCh := make(chan result, 1)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	// Root catch-all so any redirect path (/, /callback, /oauth2callback, etc.)
+	// reaches us. Google's redirect path can vary with how the OAuth client
+	// was registered in Cloud Console (Web vs Desktop), and silently 404-ing
+	// is a frustrating dead-end. Ignore noise like favicon.ico.
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
+		fmt.Printf("…callback hit: %s %s?%s\n", r.Method, r.URL.Path, r.URL.RawQuery)
+
+		// Browser noise — don't treat as auth callback.
+		if r.URL.Path == "/favicon.ico" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
 		if errStr := q.Get("error"); errStr != "" {
 			http.Error(w, "oauth error: "+errStr, http.StatusBadRequest)
 			resCh <- result{err: fmt.Errorf("oauth error: %s", errStr)}
 			return
 		}
+		code := q.Get("code")
+		if code == "" {
+			// Not the OAuth redirect — could be a stray probe. Show a hint
+			// and keep waiting rather than ending the flow.
+			w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+			fmt.Fprintf(w, "Waiting for OAuth callback (path %q has no ?code= yet).\n", r.URL.Path)
+			return
+		}
 		if q.Get("state") != state {
 			http.Error(w, "state mismatch", http.StatusBadRequest)
 			resCh <- result{err: fmt.Errorf("state mismatch")}
-			return
-		}
-		code := q.Get("code")
-		if code == "" {
-			http.Error(w, "missing code", http.StatusBadRequest)
-			resCh <- result{err: fmt.Errorf("missing code")}
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
