@@ -1,5 +1,5 @@
 // Package agent in crawl-ai is now a thin facade over the shared
-// github.com/yellowhama/musu-core/agent. The local AgentClient (chat + embed +
+// github.com/yellowhama/musu-system/core/agent. The local AgentClient (chat + embed +
 // vision) previously lived here in a triplicated copy (mirrored by marketer
 // and nurikun). The Phase B extraction moves the implementation into musu-core
 // so all three CLIs share one client.
@@ -10,7 +10,7 @@
 package agent
 
 import (
-	coreagent "github.com/yellowhama/musu-core/agent"
+	coreagent "github.com/yellowhama/musu-system/core/agent"
 )
 
 // AgentClient aliases the shared client type. Callers that hold

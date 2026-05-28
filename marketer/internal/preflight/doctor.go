@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	corepreflight "github.com/yellowhama/musu-core/preflight"
-	"github.com/yellowhama/musu-marketer/internal/bridge"
+	corepreflight "github.com/yellowhama/musu-system/core/preflight"
+	"github.com/yellowhama/musu-system/marketer/internal/bridge"
 )
 
 type DoctorOptions struct {

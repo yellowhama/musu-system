@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yellowhama/musu-nurikun/internal/mailbox"
+	"github.com/yellowhama/musu-system/nurikun/internal/mailbox"
 )
 
 func TestEnsureAdPrefix(t *testing.T) {

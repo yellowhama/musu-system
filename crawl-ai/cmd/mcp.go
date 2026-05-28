@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yellowhama/musu-crawl-ai/internal/agent"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/agent"
 )
 
 var mcpCmd = &cobra.Command{

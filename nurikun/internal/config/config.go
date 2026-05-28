@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-core/env"
-	"github.com/yellowhama/musu-nurikun/internal/policy"
+	"github.com/yellowhama/musu-system/core/env"
+	"github.com/yellowhama/musu-system/nurikun/internal/policy"
 )
 
 // Config is the runtime configuration for a project's email agent. Secrets

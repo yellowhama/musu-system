@@ -11,7 +11,7 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/ledongthuc/pdf"
 	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 type ArxivFetcher struct{}

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yellowhama/musu-nurikun/internal/knowledge"
+	"github.com/yellowhama/musu-system/nurikun/internal/knowledge"
 )
 
 // Respond composes a grounded customer-support reply. The reply is anchored in

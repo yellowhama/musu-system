@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	corepreflight "github.com/yellowhama/musu-core/preflight"
+	corepreflight "github.com/yellowhama/musu-system/core/preflight"
 )
 
 type DoctorOptions struct {

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 type TwitterFetcher struct{}

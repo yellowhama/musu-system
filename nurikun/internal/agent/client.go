@@ -1,5 +1,5 @@
 // Package agent in nurikun is now a thin facade over the shared
-// github.com/yellowhama/musu-core/agent. The local AgentClient type, the
+// github.com/yellowhama/musu-system/core/agent. The local AgentClient type, the
 // telemetry logTrace, and the OpenAI wire types previously lived here in a
 // triplicated copy (mirrored by crawl-ai and marketer). The Phase B extraction
 // moves the implementation into musu-core so all three CLIs share one client.
@@ -9,7 +9,7 @@
 package agent
 
 import (
-	coreagent "github.com/yellowhama/musu-core/agent"
+	coreagent "github.com/yellowhama/musu-system/core/agent"
 )
 
 // AgentClient aliases the shared client type. Callers that hold

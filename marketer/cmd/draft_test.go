@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-marketer/internal/db"
+	"github.com/yellowhama/musu-system/marketer/internal/db"
 )
 
 func captureStdout(t *testing.T, fn func()) string {

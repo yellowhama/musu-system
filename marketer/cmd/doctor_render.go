@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/yellowhama/musu-marketer/internal/preflight"
+	"github.com/yellowhama/musu-system/marketer/internal/preflight"
 )
 
 func renderDoctorResult(result preflight.DoctorResult, wikiDir string, topic string) {

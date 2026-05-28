@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-crawl-ai/internal/processor"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/processor"
 )
 
 func TestSearchCommandJSONHappyPath(t *testing.T) {

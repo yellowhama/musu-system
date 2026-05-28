@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/yellowhama/musu-marketer/internal/api"
+	"github.com/yellowhama/musu-system/marketer/internal/api"
 )
 
 var serveCmd = &cobra.Command{

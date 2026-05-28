@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 const Version = "v0.8.0"

@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-crawl-ai/internal/agent"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/agent"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 var researchCmd = &cobra.Command{

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 type Searcher struct {

@@ -1,5 +1,5 @@
 // Package agent in marketer is now a thin facade over the shared
-// github.com/yellowhama/musu-core/agent. The local AgentClient previously
+// github.com/yellowhama/musu-system/core/agent. The local AgentClient previously
 // lived here in a triplicated copy (mirrored by crawl-ai and nurikun). The
 // Phase B extraction moves the implementation into musu-core so all three
 // CLIs share one client.
@@ -9,7 +9,7 @@
 package agent
 
 import (
-	coreagent "github.com/yellowhama/musu-core/agent"
+	coreagent "github.com/yellowhama/musu-system/core/agent"
 )
 
 // AgentClient aliases the shared client type. Callers that hold

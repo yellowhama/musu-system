@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-crawl-ai/internal/harvester"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/harvester"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 var spotCmd = &cobra.Command{

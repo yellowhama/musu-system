@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-nurikun/internal/db"
-	"github.com/yellowhama/musu-nurikun/internal/mailbox"
+	"github.com/yellowhama/musu-system/nurikun/internal/db"
+	"github.com/yellowhama/musu-system/nurikun/internal/mailbox"
 )
 
 type fakeMailbox struct {

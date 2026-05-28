@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-nurikun/internal/db"
+	"github.com/yellowhama/musu-system/nurikun/internal/db"
 )
 
 func writeIfMissing(path string, content string) error {

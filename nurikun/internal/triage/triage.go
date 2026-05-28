@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/yellowhama/musu-nurikun/internal/agent"
-	"github.com/yellowhama/musu-nurikun/internal/policy"
+	"github.com/yellowhama/musu-system/nurikun/internal/agent"
+	"github.com/yellowhama/musu-system/nurikun/internal/policy"
 )
 
 // classifyResult mirrors policy.TriageResult but with a string category so we

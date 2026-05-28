@@ -16,7 +16,7 @@ import (
 	"net/mail"
 	"strings"
 
-	"github.com/yellowhama/musu-nurikun/internal/mailbox"
+	"github.com/yellowhama/musu-system/nurikun/internal/mailbox"
 )
 
 // adPrefix is the mandatory commercial-advertisement label (정보통신망법 §50).

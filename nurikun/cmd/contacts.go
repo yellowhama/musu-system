@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/yellowhama/musu-nurikun/internal/db"
+	"github.com/yellowhama/musu-system/nurikun/internal/db"
 )
 
 var contactsList int

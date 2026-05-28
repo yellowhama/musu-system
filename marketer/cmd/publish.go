@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-marketer/internal/db"
-	"github.com/yellowhama/musu-marketer/internal/publisher"
+	"github.com/yellowhama/musu-system/marketer/internal/db"
+	"github.com/yellowhama/musu-system/marketer/internal/publisher"
 )
 
 var publishCmd = &cobra.Command{

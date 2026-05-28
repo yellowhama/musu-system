@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yellowhama/musu-crawl-ai/internal/harvester"
-	"github.com/yellowhama/musu-crawl-ai/internal/processor"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/harvester"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/processor"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 // FetchAndSave handles the end-to-end process of fetching content and saving it to the wiki.

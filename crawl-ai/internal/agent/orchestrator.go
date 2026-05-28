@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/yellowhama/musu-crawl-ai/internal/processor"
-	"github.com/yellowhama/musu-crawl-ai/internal/utils"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/processor"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/utils"
 )
 
 // Orchestrator provides high-level actions for both CLI and MCP.

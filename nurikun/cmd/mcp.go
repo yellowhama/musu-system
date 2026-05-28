@@ -10,9 +10,9 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
-	"github.com/yellowhama/musu-nurikun/internal/config"
-	"github.com/yellowhama/musu-nurikun/internal/db"
-	"github.com/yellowhama/musu-nurikun/internal/preflight"
+	"github.com/yellowhama/musu-system/nurikun/internal/config"
+	"github.com/yellowhama/musu-system/nurikun/internal/db"
+	"github.com/yellowhama/musu-system/nurikun/internal/preflight"
 )
 
 var mcpCmd = &cobra.Command{

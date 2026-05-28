@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/blevesearch/bleve/v2"
-	"github.com/yellowhama/musu-crawl-ai/internal/processor"
+	"github.com/yellowhama/musu-system/crawl-ai/internal/processor"
 	"github.com/yuin/goldmark"
 )
 

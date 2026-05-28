@@ -8,9 +8,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-marketer/internal/agent"
-	"github.com/yellowhama/musu-marketer/internal/bridge"
-	"github.com/yellowhama/musu-marketer/internal/db"
+	"github.com/yellowhama/musu-system/marketer/internal/agent"
+	"github.com/yellowhama/musu-system/marketer/internal/bridge"
+	"github.com/yellowhama/musu-system/marketer/internal/db"
 )
 
 var draftCmd = &cobra.Command{

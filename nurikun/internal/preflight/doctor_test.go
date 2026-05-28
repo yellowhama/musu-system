@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yellowhama/musu-nurikun/internal/config"
+	"github.com/yellowhama/musu-system/nurikun/internal/config"
 )
 
 func TestEvaluateDoctorBlocksOnFixFailure(t *testing.T) {

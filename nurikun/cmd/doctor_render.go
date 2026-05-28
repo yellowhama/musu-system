@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/yellowhama/musu-nurikun/internal/preflight"
+	"github.com/yellowhama/musu-system/nurikun/internal/preflight"
 )
 
 func renderDoctorResult(result preflight.DoctorResult, project string, configPath string) {

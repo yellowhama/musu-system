@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yellowhama/musu-nurikun/internal/agent"
-	"github.com/yellowhama/musu-nurikun/internal/knowledge"
-	"github.com/yellowhama/musu-nurikun/internal/policy"
-	"github.com/yellowhama/musu-nurikun/internal/triage"
+	"github.com/yellowhama/musu-system/nurikun/internal/agent"
+	"github.com/yellowhama/musu-system/nurikun/internal/knowledge"
+	"github.com/yellowhama/musu-system/nurikun/internal/policy"
+	"github.com/yellowhama/musu-system/nurikun/internal/triage"
 )
 
 func TestLocalTriageAndRespondHappyPath(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	corepreflight "github.com/yellowhama/musu-core/preflight"
-	"github.com/yellowhama/musu-nurikun/internal/config"
+	corepreflight "github.com/yellowhama/musu-system/core/preflight"
+	"github.com/yellowhama/musu-system/nurikun/internal/config"
 )
 
 type DoctorOptions struct {

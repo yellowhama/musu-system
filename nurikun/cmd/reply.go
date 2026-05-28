@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/yellowhama/musu-nurikun/internal/config"
-	"github.com/yellowhama/musu-nurikun/internal/db"
-	"github.com/yellowhama/musu-nurikun/internal/mailbox"
+	"github.com/yellowhama/musu-system/nurikun/internal/config"
+	"github.com/yellowhama/musu-system/nurikun/internal/db"
+	"github.com/yellowhama/musu-system/nurikun/internal/mailbox"
 )
 
 var (

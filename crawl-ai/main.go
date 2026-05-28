@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yellowhama/musu-crawl-ai/cmd"
+	"github.com/yellowhama/musu-system/crawl-ai/cmd"
 )
 
 func main() {
