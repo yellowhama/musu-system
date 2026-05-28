@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -112,16 +113,24 @@ func runGmailTokenBootstrap(credsPath, outPath string, port int, noOpen bool) er
 		resCh <- result{code: code}
 	})
 
+	// Bind synchronously so port-conflict errors surface immediately and don't
+	// silently leave the consent URL pointing at another service. Bind to
+	// :PORT (dual-stack) so both 127.0.0.1 and ::1 reach us — on Windows
+	// "localhost" sometimes resolves to ::1 first.
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("bind port %d: %w — another service is likely using it; try --port <other>", port, err)
+	}
 	srv := &http.Server{
-		Addr:              fmt.Sprintf("127.0.0.1:%d", port),
 		Handler:           mux,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := srv.Serve(listener); err != nil && err != http.ErrServerClosed {
 			resCh <- result{err: fmt.Errorf("callback server: %w", err)}
 		}
 	}()
+	fmt.Printf("🌐 callback server listening on %s\n", listener.Addr())
 
 	fmt.Printf("🔑 Open this URL to grant Gmail access:\n\n%s\n\n", authURL)
 	if !noOpen {
