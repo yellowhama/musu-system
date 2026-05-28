@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const Version = "v0.3.0"
+const Version = "v0.3.1"
 
 var rootCmd = &cobra.Command{
 	Use:   "musu-nurikun",

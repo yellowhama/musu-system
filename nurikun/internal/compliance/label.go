@@ -97,3 +97,72 @@ func Decorate(out *mailbox.OutMessage, senderName, postal, unsubURL string) {
 		out.Headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
 	}
 }
+
+// placeholderPatterns are substrings commonly found in scaffold/template values
+// that must never reach a real recipient. Hit list driven by the 2026-05-29
+// incident where a self-test campaign went out with footer text
+// "주소: PLACEHOLDER_실주소_미설정_운영자_수정필요" — fine for self-send, but
+// would have been a clear 정보통신망법 §50 violation against any real subscriber.
+//
+// Matching is case-insensitive substring. Add patterns here when new template
+// strings surface in init scaffolds or .env.example files.
+var placeholderPatterns = []string{
+	"PLACEHOLDER",
+	"TODO",
+	"FIXME",
+	"XXX_",
+	"<your-",
+	"<운영자",
+	"example.com",
+	"example.org",
+	"미설정",
+	"수정필요",
+}
+
+// ValidateSenderIdentity returns an error if senderName or senderPhysical is
+// empty or contains a known placeholder pattern. The campaign send path MUST
+// call this before any recipient is touched: every footer renders the values
+// verbatim, and a footer with "주소: PLACEHOLDER_..." both violates 정보통신망법
+// §50 and burns sender reputation.
+//
+// The check is intentionally noisy (returns the specific bad pattern + the env
+// var name) so operators see exactly what to fix.
+func ValidateSenderIdentity(senderName, senderPhysical string) error {
+	if strings.TrimSpace(senderName) == "" {
+		return fmt.Errorf("compliance: sender_name is empty (set NURIKUN_SENDER_NAME)")
+	}
+	if strings.TrimSpace(senderPhysical) == "" {
+		return fmt.Errorf("compliance: sender_physical is empty (set NURIKUN_SENDER_PHYSICAL); a real postal address is mandatory per 정보통신망법 §50 for the campaign footer")
+	}
+	for _, pat := range placeholderPatterns {
+		if containsFold(senderName, pat) {
+			return fmt.Errorf("compliance: sender_name still contains placeholder %q — set a real value via NURIKUN_SENDER_NAME before any send", pat)
+		}
+		if containsFold(senderPhysical, pat) {
+			return fmt.Errorf("compliance: sender_physical still contains placeholder %q — set a real postal address via NURIKUN_SENDER_PHYSICAL before any send", pat)
+		}
+	}
+	return nil
+}
+
+// WarnPublicBaseURL returns a non-empty warning string when publicBaseURL looks
+// like a developer-only address (localhost, 127.0.0.1, etc.). Used to surface a
+// "your subscribers cannot reach this URL" warning in the campaign send output.
+// It does not return an error — self-sends and dry-runs are legitimate uses of
+// a localhost base URL, so the operator decides whether to proceed.
+func WarnPublicBaseURL(publicBaseURL string) string {
+	u := strings.ToLower(strings.TrimSpace(publicBaseURL))
+	for _, marker := range []string{"localhost", "127.0.0.1", "::1", "0.0.0.0"} {
+		if strings.Contains(u, marker) {
+			return fmt.Sprintf("public_base_url contains %q — List-Unsubscribe link will not resolve for external recipients", marker)
+		}
+	}
+	return ""
+}
+
+// containsFold reports whether s contains substr, case-insensitively, while
+// leaving non-ASCII (Korean) bytes untouched. ASCII-only fold is enough for
+// the placeholder patterns above.
+func containsFold(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+}

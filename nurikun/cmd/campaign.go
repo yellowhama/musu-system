@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -53,6 +54,18 @@ actual SMTP/Gmail delivery; every other guard and transform still runs.`,
 		cfg, err := config.Load(project)
 		if err != nil {
 			return fmt.Errorf("load config: %w", err)
+		}
+
+		// Hard guard against placeholder/empty sender identity reaching the
+		// compliance footer (2026-05-29 regression: a self-test went out with
+		// "주소: PLACEHOLDER_..." which would violate 정보통신망법 §50 against
+		// any real recipient). Applies to both --dry-run and real send so
+		// operators discover the problem during config check, not in inbox.
+		if err := compliance.ValidateSenderIdentity(cfg.SenderName, cfg.SenderPhysical); err != nil {
+			return err
+		}
+		if warn := compliance.WarnPublicBaseURL(cfg.PublicBaseURL); warn != "" {
+			fmt.Fprintf(os.Stderr, "⚠️  %s\n", warn)
 		}
 
 		store, err := openStore()
