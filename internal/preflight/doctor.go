@@ -2,11 +2,10 @@ package preflight
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
+	corepreflight "github.com/yellowhama/musu-core/preflight"
 	"github.com/yellowhama/musu-nurikun/internal/config"
 )
 
@@ -105,7 +104,7 @@ func EvaluateDoctor(opts DoctorOptions) DoctorResult {
 		result.Blocking = true
 	}
 
-	if err := probeModels(conf.AIBaseURL); err != nil {
+	if err := corepreflight.Probe(conf.AIBaseURL); err != nil {
 		result.Report.AIError = err.Error()
 		result.Blocking = true
 	} else {
@@ -202,19 +201,3 @@ func knowledgeIssues(conf *config.Config) []string {
 	return issues
 }
 
-func probeModels(baseURL string) error {
-	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
-	if baseURL == "" {
-		return fmt.Errorf("empty ai-url")
-	}
-	client := &http.Client{Timeout: 3 * time.Second}
-	resp, err := client.Get(baseURL + "/models")
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		return nil
-	}
-	return fmt.Errorf("unexpected status %s from %s/models", resp.Status, baseURL)
-}
