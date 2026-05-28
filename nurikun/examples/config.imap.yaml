@@ -1,0 +1,25 @@
+db_path: ./projects/acme-support/data/nurikun.db
+ai_provider: ollama
+ai_model: llama3
+ai_url: http://localhost:11434/v1
+
+mailbox_provider: imap
+imap_host: imap.example.com
+imap_port: 993
+imap_user: support@example.com
+imap_pass: "<set-secret>"
+smtp_host: smtp.example.com
+smtp_port: 587
+smtp_user: support@example.com
+smtp_pass: "<set-secret>"
+smtp_from: support@example.com
+
+knowledge_source: crawlai
+crawl_path: F:/Aisaak/Projects/musu-crawl-ai/wiki
+knowledge_dir: ""
+
+sender_name: Example Support
+sender_address: support@example.com
+sender_physical: 123 Example-ro, Seoul
+public_base_url: https://mail.example.com
+unsub_secret: "<set-strong-secret>"

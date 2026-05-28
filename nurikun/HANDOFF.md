@@ -1,0 +1,56 @@
+# Project Handoff: musu-nurikun
+
+## What This Repo Is
+`musu-nurikun` is the Musu ecosystem's email agent. It handles inbound support mail and opt-in campaign delivery. It is explicitly post-pivot: no forged identities, no signup botting, no cold outreach.
+
+## Current Truth
+- binary: `musu-nurikun.exe`
+- version constant: `v0.3.0`
+- default AI contract: OpenAI-compatible endpoint at `--ai-url`
+- project config: `projects/<project>/config.yaml`
+- key recovery path: `doctor --fix`
+
+## What Changed In This Round
+- added `doctor`
+- added `--json`
+- added `doctor --fix`
+- aligned `doctor --fix` with `init` by accepting `--mailbox-provider` and `--knowledge-source`
+- rebuilt the tracked exe so the binary matches the current source/README command surface
+- `init` now writes a project-local `SETUP.md`, optional folder knowledge guide, and machine-readable bootstrap metadata
+- `init` now also writes `.env.example`, `bootstrap.ps1`, and Gmail `oauth/README.md`
+- runtime config now loads project-local `.env` as a secrets layer above `config.yaml`
+- removed dead `firstNonEmpty` helper from `internal/config` (superseded by `valueString`/`valueInt`)
+- telemetry `logTrace` I/O errors are now logged to stderr instead of swallowed
+- the compiled `musu-nurikun.exe` is no longer tracked in git (already in `.gitignore`; the local file is retained)
+- live HTTP roundtrip verified end-to-end: `serve` + signed `/unsubscribe` + web `/confirm` + tamper rejection (externally-computed openssl HMAC signatures interoperate with `compliance.SignUnsub`)
+- `internal/agent`, `internal/config`, `internal/preflight` now thin wrappers over `github.com/yellowhama/musu-core@v0.1.0` (env/agent/preflight). 689 LOC ecosystem-wide deduplication
+- `gmail-token` cmd added (one-off OAuth bootstrap via local loopback callback) + Gmail API live verified against a real account
+- `cmd/mcp.go` added (8 safe ops as MCP tools; delivery ops intentionally CLI-only). MCP tool parameter schemas declared via `WithString`/`WithNumber`/`Required`/`Enum` — clients can actually pass args
+- `db.NewStore` now `MkdirAll(filepath.Dir(path))` before `sql.Open` so cwd-isolated MCP invocations succeed
+- `preflight.DoctorResult` JSON envelope uses snake_case tags (consistent with inner Report)
+- Dockerfile added (alpine runtime, digest-pinned base) + brings up under top-level docker-compose alongside ollama/crawl/marketer. End-to-end `compose up` verified healthy.
+- `.github/workflows/docker-publish.yml` added — tag-triggered multi-arch (linux/amd64+arm64) build & push to `ghcr.io/yellowhama/musu-nurikun:{tag,latest}` via Buildx + setup-qemu, strict semver tag pattern (`v[0-9]+.[0-9]+.[0-9]+[-*]`)
+- production hardening landed at the operator-local layer (top-level `docker-compose.yml` x-logging anchor + opt-in `tls`/`scheduler` profiles, `docker-compose.production.yml` GHCR overlay, `caddy/Caddyfile`, `ofelia/config.ini` running `nurikun watch` on a cron) — all live-verified (Caddy TLS reverse-proxy of `/healthz` + 2 ofelia firings in 60s with docker.sock RW + ofelia healthcheck `(healthy)`)
+
+## Operator Flow
+1. `musu-nurikun init --project <name> --mailbox-provider imap|gmail --knowledge-source crawlai|folder|none`
+2. fill mailbox, sender, and public delivery settings in `projects/<name>/config.yaml`
+3. `musu-nurikun doctor --project <name>`
+4. `musu-nurikun watch` or `musu-nurikun campaign ...`
+
+## Known Constraints
+- mailbox/OAuth bootstrap still requires manual operator credentials even though the scaffold is more guided
+- `doctor` is comprehensive, but it is still one command file doing report + fix orchestration
+- `public_base_url` and `unsub_secret` remain manual to avoid accidental weak defaults, and `doctor` now treats them as blocking readiness requirements
+
+## Key Files
+- `cmd/root.go`: global flags and JSON mode
+- `cmd/init.go`: project/config bootstrap
+- `cmd/doctor.go`: config/mailbox/knowledge/AI preflight
+- `cmd/output.go`: JSON success/error envelope
+- `internal/config/config.go`: config loading
+- `internal/mailbox/*`: IMAP/Gmail integrations
+- `internal/knowledge/*`: crawl-ai/folder/none sources
+- `internal/compliance/*`: unsubscribe/rate-limit/policy helpers
+- `projects/<project>/SETUP.md`
+- `projects/<project>/knowledge/README.md` when `knowledge_source=folder`

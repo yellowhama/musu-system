@@ -1,0 +1,16 @@
+.git/
+.github/
+*.exe
+*.test
+*.out
+projects/
+*.db
+oauth/
+.env
+.env.local
+node_modules/
+Dockerfile
+.dockerignore
+docker-compose*.yml
+*.md
+!README.md
