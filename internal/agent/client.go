@@ -1,149 +1,29 @@
+// Package agent in nurikun is now a thin facade over the shared
+// github.com/yellowhama/musu-core/agent. The local AgentClient type, the
+// telemetry logTrace, and the OpenAI wire types previously lived here in a
+// triplicated copy (mirrored by crawl-ai and marketer). The Phase B extraction
+// moves the implementation into musu-core so all three CLIs share one client.
+//
+// The wrapper preserves the previous local signatures so existing call sites
+// (watch.go, responder.go, triage.go) keep compiling unchanged.
 package agent
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"os"
-	"path/filepath"
-	"time"
+	coreagent "github.com/yellowhama/musu-core/agent"
 )
 
-type ExecutionTrace struct {
-	Timestamp string `json:"timestamp"`
-	Project   string `json:"project"`
-	Role      string `json:"role"`
-	Goal      string `json:"goal"`
-	Prompt    string `json:"prompt"`
-	Response  string `json:"response"`
-	Status    string `json:"status"`
-	Error     string `json:"error,omitempty"`
-}
+// AgentClient aliases the shared client type. Callers that hold
+// *agent.AgentClient pointers continue to work.
+type AgentClient = coreagent.Client
 
-type AgentClient struct {
-	BaseURL    string
-	Model      string
-	WikiDir    string
-	Project    string
-	httpClient *http.Client
-}
+// ExecutionTrace aliases the shared trace type for any in-tree consumer.
+type ExecutionTrace = coreagent.ExecutionTrace
 
+// NewAgentClient builds a Client wired for nurikun: telemetry under wikiDir,
+// and trace records tagged with the "nurikun_agent" role label.
 func NewAgentClient(baseURL, model, wikiDir, project string) *AgentClient {
-	if baseURL == "" { baseURL = "http://localhost:11434/v1" }
-	if model == "" { model = "llama3" }
-
-	return &AgentClient{
-		BaseURL: baseURL,
-		Model:   model,
-		WikiDir: wikiDir,
-		Project: project,
-		httpClient: &http.Client{
-			Timeout: 120 * time.Second,
-			Transport: &http.Transport{
-				MaxIdleConns:    100,
-				IdleConnTimeout: 90 * time.Second,
-			},
-		},
-	}
-}
-
-func (c *AgentClient) logTrace(trace ExecutionTrace) {
-	date := time.Now().Format("2006-01-02")
-	logDir := filepath.Join(c.WikiDir, "telemetry", date)
-	if err := os.MkdirAll(logDir, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "telemetry: mkdir %s: %v\n", logDir, err)
-		return
-	}
-
-	filename := fmt.Sprintf("%s_%s_%d.json", trace.Role, c.Project, time.Now().UnixNano())
-	path := filepath.Join(logDir, filename)
-
-	data, _ := json.MarshalIndent(trace, "", "  ")
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		fmt.Fprintf(os.Stderr, "telemetry: write %s: %v\n", path, err)
-	}
-}
-
-type ChatMessage struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-type ResponseFormat struct {
-	Type string `json:"type"`
-}
-
-type ChatRequest struct {
-	Model          string          `json:"model"`
-	Messages       []ChatMessage   `json:"messages"`
-	Stream         bool            `json:"stream"`
-	ResponseFormat *ResponseFormat `json:"response_format,omitempty"`
-}
-
-type ChatResponse struct {
-	Choices []struct {
-		Message ChatMessage `json:"message"`
-	} `json:"choices"`
-}
-
-func (c *AgentClient) Ask(prompt string, jsonFormat bool) (string, error) {
-	trace := ExecutionTrace{
-		Timestamp: time.Now().Format(time.RFC3339),
-		Project:   c.Project,
-		Role:      "nurikun_agent",
-		Prompt:    prompt,
-		Status:    "success",
-	}
-
-	reqBody := ChatRequest{
-		Model: c.Model,
-		Messages: []ChatMessage{{Role: "user", Content: prompt}},
-		Stream: false,
-	}
-
-	if jsonFormat {
-		reqBody.ResponseFormat = &ResponseFormat{Type: "json_object"}
-	}
-
-	jsonData, _ := json.Marshal(reqBody)
-	url := c.BaseURL + "/chat/completions"
-
-	resp, err := c.httpClient.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		trace.Status = "error"
-		trace.Error = err.Error()
-		c.logTrace(trace)
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		body, _ := io.ReadAll(resp.Body)
-		trace.Status = "error"
-		trace.Error = string(body)
-		c.logTrace(trace)
-		return "", fmt.Errorf("AI error %d: %s", resp.StatusCode, string(body))
-	}
-
-	var chatResp ChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		trace.Status = "error"
-		trace.Error = err.Error()
-		c.logTrace(trace)
-		return "", err
-	}
-
-	if len(chatResp.Choices) == 0 {
-		trace.Status = "error"
-		trace.Error = "no choices"
-		c.logTrace(trace)
-		return "", fmt.Errorf("no choices")
-	}
-
-	res := chatResp.Choices[0].Message.Content
-	trace.Response = res
-	c.logTrace(trace)
-	return res, nil
+	return coreagent.New(baseURL, model,
+		coreagent.WithTelemetry(wikiDir, project),
+		coreagent.WithRole("nurikun_agent"),
+	)
 }
