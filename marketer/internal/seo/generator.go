@@ -25,7 +25,7 @@ func NewGenerator(aiURL, model, wikiDir, project string, minWords int) *Generato
 		Client:      agent.NewAgentClient(aiURL, model, wikiDir, project),
 		Wiki:        bridge.NewWikiBridge(wikiDir),
 		MinWords:    minWords,
-		MaxRewrites: 2,
+		MaxRewrites: 3,
 	}
 }
 
@@ -171,10 +171,11 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 %s%s
 ### 절대 규칙 ###
 1. 법률·수치·날짜·기관에 대한 모든 주장 문장은 끝에 해당 출처 라벨을 붙인다. 예: "2026년 농지 전수조사가 시행된다 [S2]."
-2. 출처에 없는 사실/법조문은 절대 지어내지 않는다. 모르면 쓰지 않는다.
-3. 라벨은 반드시 위 출처에 존재하는 것만 사용한다 ([S1]..[S%d]).
-4. 공포 마케팅·압박("지금 안 하면 처분!") 금지. 정보 가치 중심.
-5. 최소 %d단어 분량, H2/H3 마크다운 사용.
+2. **한 출처에서 여러 문장을 연속으로 쓸 때는, 각 문장 끝에 같은 라벨을 반복한다.** 앞 문장에 라벨을 붙였다고 다음 문장을 생략하지 않는다. 예: "처분의무가 생긴 소유자는 1년 이내에 처분해야 한다 [S1]. 처분하지 않으면 6개월 이내 처분명령이 내려질 수 있다 [S1]."
+3. 출처에 없는 사실/법조문은 절대 지어내지 않는다. 모르면 쓰지 않는다. 출처로 뒷받침되지 않는 일반론(예: "효율성을 높인다")도 사실 주장처럼 쓰지 말 것.
+4. 라벨은 반드시 위 출처에 존재하는 것만 사용한다 ([S1]..[S%d]).
+5. 공포 마케팅·압박("지금 안 하면 처분!") 금지. 정보 가치 중심.
+6. 최소 %d단어 분량, H2/H3 마크다운 사용.
 
 본문 마크다운만 출력 (frontmatter 없이):`,
 		string(outlineJSON), pack.Prompt(), fb, persona.promptBlock(), len(pack.Sources), g.MinWords)
