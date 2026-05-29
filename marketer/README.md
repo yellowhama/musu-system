@@ -37,6 +37,41 @@
 
 ---
 
+## 🌾 v2 Healthy Acquisition Funnel (v2.1.0)
+
+A coordinated, *healthy* (legal + non-cringe) acquisition pipeline. Every claim-bearing
+artifact passes a deterministic **Citation Gate** — no source, no ship ("no hallucinated
+law"). All outbound (PR, referral, nurture) is **draft-only / human-in-the-loop**.
+
+| Stage | Command | What it does |
+|---|---|---|
+| Strategy | `musu-marketer plan <kw…> --target 10000` | Target → transparent funnel math + a dated campaign calendar |
+| Discovery | `musu-marketer seo <kw>` | Grounded, citation-gated SEO longform (YAML + schema.org) |
+| Reach | `musu-marketer seo <kw> --all-personas` | Same facts, 4 NJD audience framings (same gate) |
+| Amplify | `musu-marketer pr <kw> --all-outlets` | Gated press-pitch **drafts** (operator sends) |
+| Convert | `musu-marketer referral --leads l.json --lawyers w.json` | Deterministic lead↔lawyer match **draft** (exported files only) |
+
+```bash
+# 1. See what 10,000 members actually requires, and the campaign schedule
+musu-marketer plan "농지법 처분명령" "농지 상속" -p njd --target 10000
+
+# 2. Produce gated content for a pillar keyword (4 persona variants)
+musu-marketer seo "농지법 처분명령" -p njd --all-personas
+
+# 3. Draft media pitches (review before sending)
+musu-marketer pr "농지법 처분명령" -p njd --all-outlets
+
+# 4. Draft lawyer referrals for consenting, exported leads
+musu-marketer referral --leads leads.json --lawyers lawyers.json -p njd
+```
+
+Local LLM defaults to `gemma3:4b` (override with `--model`). Strict citation
+mode is **on by default**; deterministic stages (`plan`, `referral`) need no model.
+
+> Outstanding: 카카오 알림톡 distribution adapter (needs nurikun v0.4.0 internal HTTP).
+
+---
+
 ## 🛠️ Installation & Setup
 
 ### 1. Prerequisites
