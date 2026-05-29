@@ -1,11 +1,12 @@
 package cmd
 
 // defaultLocalModel is the default Ollama model for musu-marketer reasoning.
-// Per operator direction the local stack uses a TurboQuant Gemma (Gemma 3 4B
-// class) — small enough to run on the 16GB box yet strong on Korean. Override
-// any time with --model. Confirm the exact pulled tag matches this string:
+// Per operator direction the local stack uses TurboQuant Gemma 4 — Google's
+// Gemma 4 (E4B-class) with int4 + KV-cache quantization (TurboQuant Stage 1),
+// efficient on the 16GB box yet far stronger than the old Gemma 3 4B at strict
+// citation. Override any time with --model. Pull it with:
 //
-//	ollama pull gemma3:4b      # then: --model gemma3:4b
+//	ollama pull ssfdre38/gemma4-turbo
 //
 // musu's "0 external LLM default" invariant holds: this is a local endpoint.
-const defaultLocalModel = "gemma3:4b"
+const defaultLocalModel = "ssfdre38/gemma4-turbo"
