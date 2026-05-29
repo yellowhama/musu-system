@@ -107,7 +107,7 @@ func New(baseURL, model string, opts ...Option) *Client {
 		VisionModel: "llava",
 		Role:        "assistant",
 		httpClient: &http.Client{
-			Timeout: 120 * time.Second,
+			Timeout: clientTimeout(),
 			Transport: &http.Transport{
 				MaxIdleConns:        100,
 				IdleConnTimeout:     90 * time.Second,
@@ -119,6 +119,19 @@ func New(baseURL, model string, opts ...Option) *Client {
 		opt(c)
 	}
 	return c
+}
+
+// clientTimeout is the HTTP timeout for one chat round. Local LLM long-form
+// generation (and self-correction rewrite loops) routinely exceeds the old
+// 120s; the default is 300s, overridable via MUSU_AGENT_TIMEOUT_SECONDS for
+// slower hardware or larger models.
+func clientTimeout() time.Duration {
+	if v := os.Getenv("MUSU_AGENT_TIMEOUT_SECONDS"); v != "" {
+		if n, err := time.ParseDuration(v + "s"); err == nil && n > 0 {
+			return n
+		}
+	}
+	return 300 * time.Second
 }
 
 // telemetryEnabled reports whether trace writes should be attempted.
