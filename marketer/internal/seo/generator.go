@@ -262,7 +262,7 @@ func (g *Generator) polish(body string, pack SourcePack, persona Persona) (strin
 // (e.g. "**meta_description:** ...", "target_keyword: ...") into the body. These
 // are generation artifacts, never legitimate prose, and would otherwise trip the
 // citation gate as uncited claims.
-var metaEchoLine = regexp.MustCompile(`(?i)^\s*[*_#>\s]*(meta[_\s]?description|target[_\s]?keyword|secondary[_\s]?keywords|slug|title|outline|description|메타\s*설명|메타데이터|타[게깃]\s*키워드|핵심\s*키워드|보조\s*키워드|키워드|제목|슬러그|더보기|요약)\s*[*_]*\s*[:：]`)
+var metaEchoLine = regexp.MustCompile(`(?i)^\s*[*_#>\s]*(meta[_\s]?description|target[_\s]?keyword|secondary[_\s]?keywords|slug|title|outline|description|메타\s*설명|메타\s*디스크립션|디스크립션|메타데이터|타[게깃]\s*키워드|핵심\s*키워드|보조\s*키워드|키워드|제목|슬러그|더보기|요약)\s*[*_]*\s*[:：]`)
 
 // frontmatterFence strips a leading YAML/JSON frontmatter block if the model
 // emitted one despite being told not to.
