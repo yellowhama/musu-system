@@ -56,18 +56,23 @@ func (r CitationReport) Err(strict bool) error {
 
 var citationToken = regexp.MustCompile(`\[(S\d+)\]`)
 
-// claimSignals are the markers of a "checkable" claim. A sentence containing any
-// of these is asserting a legal/factual proposition and therefore must be backed
-// by a verified source. Marketing/subjective sentences carry none of these and
-// are exempt — we do not force citations onto "농지 고민, 농지다가 함께합니다".
+// claimSignals are the markers of a "checkable" claim — a SPECIFIC legal/factual
+// proposition that must be backed by a verified source. The signals are
+// deliberately precise: a specific statute reference (제10조), a quantity (1년,
+// 25%), or a named authority (한국농어촌공사). This is exactly where hallucination
+// lives, so this is exactly what the gate enforces.
+//
+// Bare topic words alone (농지법, 처분명령, 이행강제금) are NOT signals: a framing
+// sentence like "처분명령을 받으면 당황스럽습니다" or "본 가이드는 처분명령을
+// 설명합니다" asserts no specific fact and must not be forced to cite. The moment
+// such a sentence states a specific (제11조, 6개월, 한국농어촌공사) it trips a
+// precise signal and is gated again. This keeps the "no hallucinated law"
+// guarantee while not blocking on topic mentions.
 var claimSignals = []*regexp.Regexp{
-	// Legal references
-	regexp.MustCompile(`농지법`),
+	// Specific legal references
 	regexp.MustCompile(`제\s*\d+\s*조`),
 	regexp.MustCompile(`제\s*\d+\s*항`),
-	regexp.MustCompile(`처분명령`),
-	regexp.MustCompile(`이행강제금`),
-	regexp.MustCompile(`강제처분`),
+	regexp.MustCompile(`제\s*\d+\s*호`),
 	regexp.MustCompile(`시행령`),
 	regexp.MustCompile(`시행규칙`),
 	regexp.MustCompile(`헌법`),
@@ -75,17 +80,19 @@ var claimSignals = []*regexp.Regexp{
 	// Quantities / dates (factual specifics)
 	regexp.MustCompile(`\d{4}\s*년`),
 	regexp.MustCompile(`\d+\s*개월`),
+	regexp.MustCompile(`\d+\s*제곱미터`),
+	regexp.MustCompile(`\d+\s*만\s*제곱미터`),
 	regexp.MustCompile(`\d+\s*%`),
 	regexp.MustCompile(`\d+\s*퍼센트`),
+	regexp.MustCompile(`\d+\s*분의\s*\d+`),
 	regexp.MustCompile(`\d+\s*만\s*원`),
 	regexp.MustCompile(`\d+\s*억`),
-	// Authorities
+	// Named authorities
 	regexp.MustCompile(`법제처`),
 	regexp.MustCompile(`농림축산식품부`),
 	regexp.MustCompile(`농식품부`),
 	regexp.MustCompile(`농지은행`),
 	regexp.MustCompile(`한국농어촌공사`),
-	regexp.MustCompile(`지방자치단체`),
 }
 
 // sentenceSplit breaks Korean/English prose into sentences. We split on sentence

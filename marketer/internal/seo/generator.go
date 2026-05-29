@@ -3,6 +3,7 @@ package seo
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/yellowhama/musu-system/marketer/internal/agent"
@@ -184,10 +185,34 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 	if err != nil {
 		return "", err
 	}
+	resp = sanitizeBody(resp)
 	if strings.TrimSpace(resp) == "" {
 		return "", fmt.Errorf("writer returned empty body")
 	}
 	return resp, nil
+}
+
+// metaEchoLine matches lines where the model echoed outline/frontmatter fields
+// (e.g. "**meta_description:** ...", "target_keyword: ...") into the body. These
+// are generation artifacts, never legitimate prose, and would otherwise trip the
+// citation gate as uncited claims.
+var metaEchoLine = regexp.MustCompile(`(?i)^\s*[*_#>\s]*(meta[_\s]?description|target[_\s]?keyword|secondary[_\s]?keywords|slug|title|outline|description|메타\s*설명|메타데이터|타[게깃]\s*키워드|핵심\s*키워드|보조\s*키워드|제목|슬러그)\s*[*_]*\s*[:：]`)
+
+// frontmatterFence strips a leading YAML/JSON frontmatter block if the model
+// emitted one despite being told not to.
+var frontmatterFence = regexp.MustCompile("(?s)^\\s*(---.*?---|```[a-z]*\\s*\\{.*?\\}\\s*```)\\s*")
+
+func sanitizeBody(body string) string {
+	body = frontmatterFence.ReplaceAllString(body, "")
+	lines := strings.Split(body, "\n")
+	kept := make([]string, 0, len(lines))
+	for _, ln := range lines {
+		if metaEchoLine.MatchString(ln) {
+			continue
+		}
+		kept = append(kept, ln)
+	}
+	return strings.TrimSpace(strings.Join(kept, "\n"))
 }
 
 // citationFeedback turns a failing report into targeted rewrite instructions.
