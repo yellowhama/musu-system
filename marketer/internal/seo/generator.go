@@ -18,6 +18,7 @@ type Generator struct {
 	Wiki        *bridge.WikiBridge
 	MinWords    int
 	MaxRewrites int
+	Polish      bool // run the magazine-class editorial rewrite pass
 }
 
 // NewGenerator wires a generator against the shared Ollama-backed agent client.
@@ -27,6 +28,7 @@ func NewGenerator(aiURL, model, wikiDir, project string, minWords int) *Generato
 		Wiki:        bridge.NewWikiBridge(wikiDir),
 		MinWords:    minWords,
 		MaxRewrites: 3,
+		Polish:      true,
 	}
 }
 
@@ -80,16 +82,16 @@ func (g *Generator) generate(keyword string, persona Persona, strict bool) (*Art
 	if err != nil {
 		return nil, CitationReport{}, fmt.Errorf("seo outline phase failed: %w", err)
 	}
-	if strings.TrimSpace(outline.Slug) == "" {
-		outline.Slug = Slugify(outline.Title)
-	}
 	if outline.TargetKeyword == "" {
 		outline.TargetKeyword = keyword
 	}
-	// Disambiguate per-persona files for the same keyword.
+	// Derive a clean, deterministic slug from the target keyword rather than
+	// trusting the model's often-garbled romanization. Persona disambiguates.
+	slugBase := outline.TargetKeyword
 	if persona.Slug != "" {
-		outline.Slug = Slugify(outline.Slug + "-" + persona.Slug)
+		slugBase = slugBase + "-" + persona.Slug
 	}
+	outline.Slug = Slugify(slugBase)
 
 	var (
 		body     string
@@ -111,10 +113,24 @@ func (g *Generator) generate(keyword string, persona Persona, strict bool) (*Art
 		feedback = citationFeedback(rep)
 	}
 
-	art := &Article{Outline: *outline, Body: body, Pack: pack}
 	if gateErr := rep.Err(strict); gateErr != nil {
-		return art, rep, gateErr
+		return &Article{Outline: *outline, Body: body, Pack: pack}, rep, gateErr
 	}
+
+	// Editorial polish: rewrite the gated draft to magazine-class prose while
+	// preserving every citation and fact. Re-gate the result; only keep the
+	// polish if it still passes AND retains the cited-claim count (a polish that
+	// drops or weakens citations is rejected in favour of the accurate draft).
+	if g.Polish {
+		if polished, perr := g.polish(body, pack, persona); perr == nil {
+			prep := CheckCitations(polished, pack)
+			if prep.OK(strict) && prep.CitedClaims >= rep.CitedClaims {
+				body, rep = polished, prep
+			}
+		}
+	}
+
+	art := &Article{Outline: *outline, Body: body, Pack: pack}
 	return art, rep, nil
 }
 
@@ -178,6 +194,13 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 5. 공포 마케팅·압박("지금 안 하면 처분!") 금지. 정보 가치 중심.
 6. 최소 %d단어 분량, H2/H3 마크다운 사용.
 
+### 문체 — 잡지 기사 클래스 (반드시) ###
+- 도입부는 구체적 장면이나 독자의 실제 상황으로 시작한다. "농지 소유자라면 …할 수 있습니다" 같은 교과서식 도입 금지.
+- AI 상투어·군더더기 금지: "중요한 역할을 합니다", "~에 대해 알아보겠습니다", "결론적으로", "~라는 점에서 의미가 있습니다" 류 삭제.
+- 문장 길이를 변주한다. 짧은 단정문과 설명문을 섞어 리듬을 만든다.
+- 전문가가 옆에서 차분히 설명하듯, 따뜻하지만 군더더기 없는 목소리.
+- 같은 사실을 반복 부연하지 말 것. 한 번 명확히 말하고 넘어간다.
+
 본문 마크다운만 출력 (frontmatter 없이):`,
 		string(outlineJSON), pack.Prompt(), fb, persona.promptBlock(), len(pack.Sources), g.MinWords)
 
@@ -192,11 +215,54 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 	return resp, nil
 }
 
+// polish runs an editorial rewrite to lift the gated draft to magazine-class
+// prose. It is hard-constrained to preserve every [S#] citation and invent no
+// new fact; the caller re-gates the result and discards it if any citation was
+// dropped or weakened. This keeps editorial quality from ever costing accuracy.
+func (g *Generator) polish(body string, pack SourcePack, persona Persona) (string, error) {
+	voice := "전문적이면서 따뜻하고 신뢰감 있는"
+	if persona.Voice != "" {
+		voice = persona.Voice
+	}
+	prompt := fmt.Sprintf(`당신은 한국 유력 시사·실용 매거진의 시니어 에디터입니다.
+아래 초안을 '잡지 기사 클래스'로 다시 씁니다. 정보는 정확하나 문장이 평범하고 템플릿틱한 초안입니다.
+
+### 다시 쓰기 원칙 ###
+- 강렬한 도입부(리드): 독자의 실제 상황·장면·핵심 질문으로 시작. 교과서식 도입 제거.
+- 내러티브 흐름과 문장 리듬: 짧은 문장과 긴 문장을 섞고, 단락을 자연스럽게 잇는다.
+- AI 상투어·군더더기·동어반복 제거. 한 번 말한 사실을 부연 반복하지 않는다.
+- 목소리: %s 톤. 전문가가 곁에서 설명하듯.
+- 소제목(H2/H3)도 정보적이되 읽고 싶게 다듬는다.
+
+### 절대 불변 (어기면 실패) ###
+1. 모든 [S#] 출처 라벨을 해당 사실 문장에 **그대로 유지**한다. 라벨을 옮기되 사실과 분리하지 말 것.
+2. 초안에 없는 사실·수치·법조문·기관을 **새로 추가하지 않는다**. 인용 없는 일반 진술(예: "벌금을 물 수 있다")도 새로 만들지 말 것.
+3. 마크다운 본문만 출력. frontmatter·메타·설명 라벨 금지.
+
+### 초안 ###
+%s
+
+### 출처 라벨 목록 (이 라벨만 존재) ###
+%s
+
+다시 쓴 본문(마크다운)만 출력:`, voice, body, strings.Join(pack.Labels(), ", "))
+
+	resp, err := g.Client.Ask(prompt, false)
+	if err != nil {
+		return "", err
+	}
+	resp = sanitizeBody(resp)
+	if strings.TrimSpace(resp) == "" {
+		return "", fmt.Errorf("polish returned empty body")
+	}
+	return resp, nil
+}
+
 // metaEchoLine matches lines where the model echoed outline/frontmatter fields
 // (e.g. "**meta_description:** ...", "target_keyword: ...") into the body. These
 // are generation artifacts, never legitimate prose, and would otherwise trip the
 // citation gate as uncited claims.
-var metaEchoLine = regexp.MustCompile(`(?i)^\s*[*_#>\s]*(meta[_\s]?description|target[_\s]?keyword|secondary[_\s]?keywords|slug|title|outline|description|메타\s*설명|메타데이터|타[게깃]\s*키워드|핵심\s*키워드|보조\s*키워드|키워드|제목|슬러그)\s*[*_]*\s*[:：]`)
+var metaEchoLine = regexp.MustCompile(`(?i)^\s*[*_#>\s]*(meta[_\s]?description|target[_\s]?keyword|secondary[_\s]?keywords|slug|title|outline|description|메타\s*설명|메타데이터|타[게깃]\s*키워드|핵심\s*키워드|보조\s*키워드|키워드|제목|슬러그|더보기|요약)\s*[*_]*\s*[:：]`)
 
 // frontmatterFence strips a leading YAML/JSON frontmatter block if the model
 // emitted one despite being told not to.
