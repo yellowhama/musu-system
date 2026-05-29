@@ -49,6 +49,7 @@ law"). All outbound (PR, referral, nurture) is **draft-only / human-in-the-loop*
 | Discovery | `musu-marketer seo <kw>` | Grounded, citation-gated SEO longform (YAML + schema.org) |
 | Reach | `musu-marketer seo <kw> --all-personas` | Same facts, 4 NJD audience framings (same gate) |
 | Amplify | `musu-marketer pr <kw> --all-outlets` | Gated press-pitch **drafts** (operator sends) |
+| Nurture | `musu-marketer notify` | Kakao 알림톡 정보성 template **drafts** + compliance check (no send) |
 | Convert | `musu-marketer referral --leads l.json --lawyers w.json` | Deterministic lead↔lawyer match **draft** (exported files only) |
 
 ```bash

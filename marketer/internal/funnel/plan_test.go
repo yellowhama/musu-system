@@ -34,9 +34,9 @@ func TestComputeGuardsZeroRates(t *testing.T) {
 
 func TestBuildPlanSchedule(t *testing.T) {
 	plan := BuildPlan("njd", []string{"농지법 처분명령", "농지 상속"}, DefaultConfig())
-	// 3 actions per keyword (2 keywords = 6) + 3 standing actions = 9.
-	if len(plan.Actions) != 9 {
-		t.Fatalf("Actions = %d, want 9", len(plan.Actions))
+	// 3 actions per keyword (2 keywords = 6) + 4 standing actions = 10.
+	if len(plan.Actions) != 10 {
+		t.Fatalf("Actions = %d, want 10", len(plan.Actions))
 	}
 	// Second keyword's pillar article is scheduled a week after the first.
 	var pillarDays []int
