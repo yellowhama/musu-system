@@ -45,7 +45,8 @@ v2가 더해야 할 layer:
 | Sprint | 산출물 | LOC | 의존 |
 |---|---|---|---|
 | **S1** ✅ | SEO 블로그 generator + **Citation Gate** | ~600 | wiki bridge (보유) |
-| S2 | 카카오 알림톡 channel adapter + funnel | ~400 | nurikun internal HTTP (v0.4.0) |
+| **S2 (콘텐츠 절반)** ✅ | 카카오 알림톡 **정보성 템플릿 생성기 + 컴플라이언스 검증** (`notify`). 발송 transport는 미연동(nurikun v0.4.0 대기) | ~250 | — |
+| S2 (transport 절반) | 알림톡 발송 어댑터 + funnel 연동 | ~250 | nurikun internal HTTP (v0.4.0) |
 | **S3** ✅ | persona variant generator (4 페르소나) — `--persona`/`--all-personas`, S1 출처+게이트 재사용 | ~300 | S1 |
 | **S4** ✅ | 농민신문 PR pitch generator — `pr <keyword> --outlet/--all-outlets`, draft-only·human-in-loop, S1 게이트 재사용 | ~200 | S1 |
 | **S5** ✅ | 변호사 leads referral matcher — `referral --leads --lawyers`, 결정론 매칭(전문분야 필수·지역 부스트·긴급도·capacity), draft-only. **exported 파일만**(live subscriber X) | ~300 | exported leads |
