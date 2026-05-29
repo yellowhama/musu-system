@@ -6,7 +6,7 @@
 - `cmd/init.go`: project/database/persona bootstrap
 - `cmd/doctor.go`: wiki/project/AI/topic preflight
 - `cmd/draft.go`: main draft command
-- `cmd/seo.go`: v2 SEO longform blog generator (`seo <keyword>`), strict citation gate, writes `projects/<project>/blog/<slug>.md`
+- `cmd/seo.go`: v2 SEO longform blog generator (`seo <keyword>`), strict citation gate, `--persona`/`--all-personas` audience variants, writes `projects/<project>/blog/<slug>.md`
 - `cmd/autopilot.go`: higher-level orchestration flow
 - `cmd/publish.go`: publish adapters
 - `cmd/mcp.go`: MCP server (exposes `draft_campaign` + `list_campaigns` with declared parameter schemas)
@@ -16,7 +16,7 @@
 ## Core Packages
 - `internal/agent`: strategist, copywriter, critic, shared AI client
 - `internal/agent/skills.go`: embedded Marketing Bible loader
-- `internal/seo`: v2 SEO blog pipeline — `SourcePack`/`Outline`/`Article` (article.go, pure render), `CheckCitations` deterministic citation gate (citation.go), `Generator` LLM orchestration (generator.go). See `SPEC_V2.md` §4.
+- `internal/seo`: v2 SEO blog pipeline — `SourcePack`/`Outline`/`Article` (article.go, pure render), `CheckCitations` deterministic citation gate (citation.go), `Generator` LLM orchestration (generator.go), `Persona` audience variants reusing the same sources+gate (persona.go). See `SPEC_V2.md` §4.
 - `internal/bridge`: wiki integration and topic lookup
 - `internal/db`: SQLite persistence for campaigns
 - `internal/publisher`: local and webhook publishing

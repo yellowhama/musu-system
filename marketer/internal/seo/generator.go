@@ -29,18 +29,53 @@ func NewGenerator(aiURL, model, wikiDir, project string, minWords int) *Generato
 	}
 }
 
-// Generate runs the full SEO pipeline for one keyword. It returns a finished
-// Article and the final CitationReport. When strict is true and the body still
-// carries uncited claims after MaxRewrites, Generate returns an error and the
-// caller MUST NOT publish — this is the "no unsanitary food" hard gate.
+// Generate runs the full SEO pipeline for one keyword with no persona framing
+// (the generic article). See generate for the shared implementation.
 func (g *Generator) Generate(keyword string, strict bool) (*Article, CitationReport, error) {
+	return g.generate(keyword, Persona{}, strict)
+}
+
+// GenerateForPersona runs the pipeline retold for a specific NJD audience. The
+// facts, sources, and citation gate are identical to Generate; only framing,
+// tone, examples, and CTA angle differ. The persona slug is appended to the
+// article slug so variants of the same keyword never collide on disk.
+func (g *Generator) GenerateForPersona(keyword string, persona Persona, strict bool) (*Article, CitationReport, error) {
+	return g.generate(keyword, persona, strict)
+}
+
+// VariantResult pairs a persona with its generated article (or the error/report
+// from a failed gate) so GenerateVariants can return partial success.
+type VariantResult struct {
+	Persona Persona
+	Article *Article
+	Report  CitationReport
+	Err     error
+}
+
+// GenerateVariants fans a single keyword out across personas. Each variant is
+// generated and gated independently; one persona failing the citation gate does
+// not abort the others. Callers publish only the variants with Err == nil.
+func (g *Generator) GenerateVariants(keyword string, personas []Persona, strict bool) []VariantResult {
+	out := make([]VariantResult, 0, len(personas))
+	for _, p := range personas {
+		art, rep, err := g.generate(keyword, p, strict)
+		out = append(out, VariantResult{Persona: p, Article: art, Report: rep, Err: err})
+	}
+	return out
+}
+
+// generate is the shared pipeline. A zero Persona means the generic article.
+// When strict is true and the body still carries uncited claims after
+// MaxRewrites, it returns an error and the caller MUST NOT publish — this is the
+// "no unsanitary food" hard gate.
+func (g *Generator) generate(keyword string, persona Persona, strict bool) (*Article, CitationReport, error) {
 	results, err := g.Wiki.FindByTopic(keyword)
 	if err != nil || len(results) == 0 {
 		return nil, CitationReport{}, fmt.Errorf("no verified knowledge found for keyword: %s", keyword)
 	}
 	pack := NewSourcePack(keyword, results)
 
-	outline, err := g.outline(keyword, pack)
+	outline, err := g.outline(keyword, pack, persona)
 	if err != nil {
 		return nil, CitationReport{}, fmt.Errorf("seo outline phase failed: %w", err)
 	}
@@ -49,6 +84,10 @@ func (g *Generator) Generate(keyword string, strict bool) (*Article, CitationRep
 	}
 	if outline.TargetKeyword == "" {
 		outline.TargetKeyword = keyword
+	}
+	// Disambiguate per-persona files for the same keyword.
+	if persona.Slug != "" {
+		outline.Slug = Slugify(outline.Slug + "-" + persona.Slug)
 	}
 
 	var (
@@ -60,7 +99,7 @@ func (g *Generator) Generate(keyword string, strict bool) (*Article, CitationRep
 	// to MaxRewrites. The feedback handed back to the writer is the concrete list
 	// of sentences that lacked a source, so the rewrite is targeted.
 	for attempt := 0; attempt <= g.MaxRewrites; attempt++ {
-		body, err = g.write(keyword, outline, pack, feedback)
+		body, err = g.write(keyword, outline, pack, feedback, persona)
 		if err != nil {
 			return nil, CitationReport{}, fmt.Errorf("seo write phase failed: %w", err)
 		}
@@ -78,13 +117,13 @@ func (g *Generator) Generate(keyword string, strict bool) (*Article, CitationRep
 	return art, rep, nil
 }
 
-func (g *Generator) outline(keyword string, pack SourcePack) (*Outline, error) {
+func (g *Generator) outline(keyword string, pack SourcePack, persona Persona) (*Outline, error) {
 	prompt := fmt.Sprintf(`당신은 한국어 SEO 콘텐츠 전략가입니다. 아래 검증된 출처만 근거로,
 키워드 "%s"에 대한 블로그 글의 SEO 구조를 설계하세요.
 
 ### 검증된 출처 ###
 %s
-
+%s
 ### 작업 ###
 1. 검색 의도에 맞는 제목(title) — 키워드 포함, 60자 이내
 2. meta_description — 160자 이내, 클릭 유도, 과장/공포 금지
@@ -101,7 +140,7 @@ func (g *Generator) outline(keyword string, pack SourcePack) (*Outline, error) {
   "target_keyword": "...",
   "secondary_keywords": ["...", "..."],
   "outline": ["H2: ...", "  H3: ...", "H2: ..."]
-}`, keyword, pack.Prompt())
+}`, keyword, pack.Prompt(), persona.promptBlock())
 
 	resp, err := g.Client.Ask(prompt, true)
 	if err != nil {
@@ -114,7 +153,7 @@ func (g *Generator) outline(keyword string, pack SourcePack) (*Outline, error) {
 	return &o, nil
 }
 
-func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, feedback string) (string, error) {
+func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, feedback string, persona Persona) (string, error) {
 	fb := ""
 	if feedback != "" {
 		fb = fmt.Sprintf("\n### 이전 시도 반려 — 반드시 수정 ###\n%s\n", feedback)
@@ -129,7 +168,7 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 
 ### 검증된 출처 (이 안의 사실만 사용) ###
 %s
-%s
+%s%s
 ### 절대 규칙 ###
 1. 법률·수치·날짜·기관에 대한 모든 주장 문장은 끝에 해당 출처 라벨을 붙인다. 예: "2026년 농지 전수조사가 시행된다 [S2]."
 2. 출처에 없는 사실/법조문은 절대 지어내지 않는다. 모르면 쓰지 않는다.
@@ -138,7 +177,7 @@ func (g *Generator) write(keyword string, outline *Outline, pack SourcePack, fee
 5. 최소 %d단어 분량, H2/H3 마크다운 사용.
 
 본문 마크다운만 출력 (frontmatter 없이):`,
-		string(outlineJSON), pack.Prompt(), fb, len(pack.Sources), g.MinWords)
+		string(outlineJSON), pack.Prompt(), fb, persona.promptBlock(), len(pack.Sources), g.MinWords)
 
 	resp, err := g.Client.Ask(prompt, false)
 	if err != nil {
