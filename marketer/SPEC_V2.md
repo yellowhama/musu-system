@@ -48,7 +48,7 @@ v2가 더해야 할 layer:
 | S2 | 카카오 알림톡 channel adapter + funnel | ~400 | nurikun internal HTTP (v0.4.0) |
 | **S3** ✅ | persona variant generator (4 페르소나) — `--persona`/`--all-personas`, S1 출처+게이트 재사용 | ~300 | S1 |
 | **S4** ✅ | 농민신문 PR pitch generator — `pr <keyword> --outlet/--all-outlets`, draft-only·human-in-loop, S1 게이트 재사용 | ~200 | S1 |
-| S5 | 변호사 leads referral matcher | ~400 | nurikun subscribers |
+| **S5** ✅ | 변호사 leads referral matcher — `referral --leads --lawyers`, 결정론 매칭(전문분야 필수·지역 부스트·긴급도·capacity), draft-only. **exported 파일만**(live subscriber X) | ~300 | exported leads |
 | **S6** ✅ | acquisition funnel planner — `plan <keyword...>`, 목표→투명한 퍼널 수치 + 캠페인 캘린더(seo/persona/pr/opt-in/nurture 오케스트레이션). 결정론·LLM 불요 | ~300 | S1·S3·S4 |
 
 ## 4. Sprint 1 계약 (SEO blog generator)
