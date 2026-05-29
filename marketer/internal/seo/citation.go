@@ -87,8 +87,9 @@ var claimSignals = []*regexp.Regexp{
 	regexp.MustCompile(`\d+\s*분의\s*\d+`),
 	regexp.MustCompile(`\d+\s*만\s*원`),
 	regexp.MustCompile(`\d+\s*억`),
-	// Named authorities
-	regexp.MustCompile(`법제처`),
+	// Named authorities (substantive actors in enforcement; NOT 법제처, which is
+	// the document publisher/provenance — surfaced in the 출처 section, and only
+	// ever appears in meta "본 글은 법제처…근거로 작성" disclaimers, not in claims).
 	regexp.MustCompile(`농림축산식품부`),
 	regexp.MustCompile(`농식품부`),
 	regexp.MustCompile(`농지은행`),
