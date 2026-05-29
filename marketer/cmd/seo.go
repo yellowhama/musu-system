@@ -117,7 +117,7 @@ func saveArticle(dir string, art *seo.Article) (string, error) {
 }
 
 func init() {
-	seoCmd.Flags().String("model", "llama3", "Ollama model for reasoning")
+	seoCmd.Flags().String("model", defaultLocalModel, "Ollama model for reasoning")
 	seoCmd.Flags().Bool("strict", true, "block output if any factual claim is uncited (recommended)")
 	seoCmd.Flags().Int("min-words", 900, "minimum target word count for the body")
 	seoCmd.Flags().String("out", "blog", "output subdirectory under projects/<project>/")

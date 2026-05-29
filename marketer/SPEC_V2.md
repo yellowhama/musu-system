@@ -47,7 +47,7 @@ v2가 더해야 할 layer:
 | **S1** ✅ | SEO 블로그 generator + **Citation Gate** | ~600 | wiki bridge (보유) |
 | S2 | 카카오 알림톡 channel adapter + funnel | ~400 | nurikun internal HTTP (v0.4.0) |
 | **S3** ✅ | persona variant generator (4 페르소나) — `--persona`/`--all-personas`, S1 출처+게이트 재사용 | ~300 | S1 |
-| S4 | 농민신문 PR pitch generator | ~200 | S1 콘텐츠 자산 |
+| **S4** ✅ | 농민신문 PR pitch generator — `pr <keyword> --outlet/--all-outlets`, draft-only·human-in-loop, S1 게이트 재사용 | ~200 | S1 |
 | S5 | 변호사 leads referral matcher | ~400 | nurikun subscribers |
 
 ## 4. Sprint 1 계약 (SEO blog generator)
