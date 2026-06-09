@@ -5,4 +5,5 @@ use (
 	./crawl-ai
 	./marketer
 	./nurikun
+	./website-co
 )
