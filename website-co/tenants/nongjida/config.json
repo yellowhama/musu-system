@@ -1,0 +1,14 @@
+{
+  "site": "nongjida",
+  "brand": "농지다",
+  "niche": "농지 소유자의 결정 — 매도·임대·자경·농지은행 위탁(비전문·고령 소유자 대상, 평이 한국어)",
+  "url": "https://nongjida.kr",
+  "draftsDir": "E:\\nongjida.com\\content-candidates\\news-drafts",
+  "ledgerPath": "C:\\Users\\empty\\musu-for-njd\\tools\\weekly-cadence\\state\\published-approved.json",
+  "maxRounds": 4,
+  "publish": {
+    "mode": "command",
+    "cwd": "E:\\nongjida.com\\api",
+    "argv": ["go", "run", "./cmd/wiki-gen", "--slug={slug}", "--title={title}", "--category={category}", "--file={file}"]
+  }
+}

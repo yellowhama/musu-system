@@ -9,11 +9,15 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/yellowhama/musu-system/website-co/internal/agent"
 	"github.com/yellowhama/musu-system/website-co/internal/pipeline"
 	"github.com/yellowhama/musu-system/website-co/internal/prompts"
+	"github.com/yellowhama/musu-system/website-co/internal/publish"
+	"github.com/yellowhama/musu-system/website-co/internal/tenant"
 )
 
 func main() {
@@ -46,6 +50,8 @@ func cmdOnce(args []string) {
 	topic := fs.String("topic", "", "드라이브할 토픽")
 	timeout := fs.Duration("timeout", 8*time.Minute, "claude 호출 타임아웃")
 	rounds := fs.Int("rounds", 4, "수정 루프 최대 라운드")
+	tenantPath := fs.String("tenant", "", "테넌트 config 경로 또는 디렉토리(brand·발행·원장)")
+	doPublish := fs.Bool("publish", false, "승인 시 실제 발행(미지정=섀도, 발행 안 함)")
 	_ = fs.Parse(args)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -65,8 +71,21 @@ func cmdOnce(args []string) {
 		fmt.Fprintln(os.Stderr, "--probe 또는 --topic 필요")
 		os.Exit(2)
 	}
-	// 섀도 실행: 작가→검증→편집장→수정루프 1토픽. 발행 안 함(출력만).
-	res, err := pipeline.Drive(ctx, cl, prompts.Vars{Brand: "농지다"}, *topic, *rounds)
+
+	// 테넌트 로드(있으면). 없으면 농지다 기본 brand로 섀도.
+	brand, maxRounds := "농지다", *rounds
+	var cfg *tenant.Config
+	if *tenantPath != "" {
+		c, err := tenant.Load(resolveTenant(*tenantPath))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "테넌트 로드 실패:", err)
+			os.Exit(1)
+		}
+		cfg = &c
+		brand, maxRounds = c.Brand, c.MaxRounds
+	}
+
+	res, err := pipeline.Drive(ctx, cl, prompts.Vars{Brand: brand}, *topic, maxRounds)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "드라이브 실패:", err)
 		os.Exit(1)
@@ -78,8 +97,43 @@ func cmdOnce(args []string) {
 	if res.Verdict.Notes != "" {
 		fmt.Fprintln(os.Stderr, "편집장 노트:", res.Verdict.Notes)
 	}
+
+	// 승인 + --publish + 테넌트 = 실제 발행. 그 외 = 섀도.
+	if res.Status == pipeline.StatusApproved && *doPublish && cfg != nil {
+		lp := cfg.LedgerPath
+		if lp == "" {
+			lp = filepath.Join(filepath.Dir(resolveTenant(*tenantPath)), "state", "published-approved.json")
+		}
+		ledger, err := publish.LoadLedger(lp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "원장 로드 실패:", err)
+			os.Exit(1)
+		}
+		pr, err := publish.Publish(ctx, *cfg, res.Draft, ledger, time.Now())
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "발행 실패:", err)
+			os.Exit(1)
+		}
+		if pr.Skipped {
+			fmt.Fprintln(os.Stderr, "이미 발행됨(멱등):", pr.Slug)
+		} else {
+			fmt.Fprintf(os.Stderr, "✅ 발행 완료: %s → %s\n", pr.Slug, pr.URL)
+		}
+		return
+	}
 	fmt.Fprintln(os.Stderr, "\n===== 초안(섀도, 발행 안 함) =====")
 	fmt.Println(res.Draft)
+}
+
+// resolveTenant — config.json 경로 또는 디렉토리(또는 tenants/<name>)를 config.json 경로로 정규화.
+func resolveTenant(p string) string {
+	if strings.HasSuffix(p, ".json") {
+		return p
+	}
+	if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+		return filepath.Join(p, "config.json")
+	}
+	return filepath.Join("tenants", p, "config.json")
 }
 
 func cmdRun(args []string) {

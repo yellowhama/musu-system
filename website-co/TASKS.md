@@ -18,10 +18,10 @@
 claude=stateless 실행기로 작가→검증→편집장→수정루프 완주, paperclip 이슈/reconciler 없음 → **block-storm 구조적 불가**. 편집장 YMYL 게이트 보존(위조출처 차단). 미수렴=needs_human(≠blocked).
 
 ## Phase 2 — 발행 + 농지다 테넌트
-- [ ] **T2.1** 테넌트 config 로더 `internal/tenant/config.go`: `tenants/<site>/config.json`(니치·발행대상·프롬프트경로·시크릿참조·스케줄)
-- [ ] **T2.2** 발행 어댑터 `internal/publish/`: file/command 모드 + 원장(`published-approved.json` 호환) + write-ahead intent
-- [ ] **T2.3** 농지다 테넌트 `tenants/nongjida/config.json`: 니치=농지, 발행=NJD 뉴스 API/파일
-- [ ] **T2.4** 농지다 컷오버: `once` 실발행 1편 검증(기존 발행과 동일 형식)
+- [x] **T2.1** 테넌트 config 로더 `tenant/config.go`: Load/LoadAll, Publish(file/command+cwd), 검증. 멀티테넌트.
+- [x] **T2.2** 발행 어댑터 `publish/`: frontmatter 파서 + file/command 모드 + 원장(published-approved.json 호환) + **write-ahead intent**. **유닛테스트 통과**(파싱·file발행·멱등, 프로덕션 무관)
+- [x] **T2.3** 농지다 테넌트 `tenants/nongjida/config.json`: brand=농지다, publish=command(wiki-gen api/ cwd), 기존 원장 공유. once `--tenant`·`--publish` 배선
+- [ ] **T2.4** 농지다 컷오버: `once --tenant nongjida --publish` 실발행 1편. ⚠️**프로덕션(wiki-gen→nongjida.kr)이라 감독 발행** — 빌드·경로 준비 완료, 실행만 남음(승인 시)
 
 ## Phase 3 — 토픽공급 + 스케줄 + 헬스 (musu-njd 흡수)
 - [ ] **T3.1** 큐 `internal/queue/`: claim/lease(타임아웃 재claim)/done/needs_human, 1차 파일(JSON) — block-storm 불가 입증
