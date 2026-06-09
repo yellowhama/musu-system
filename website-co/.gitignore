@@ -1,6 +1,0 @@
-# 런타임 state(큐·원장)는 코드 아님 — 커밋 안 함
-tenants/*/state/
-*.exe
-# claude CLI 작업 아티팩트(once 섀도 실행 시 cwd에 생성)
-wiki/
-.claude/
