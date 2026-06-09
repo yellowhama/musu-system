@@ -11,9 +11,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/yellowhama/musu-system/website-co/internal/agent"
+	"github.com/yellowhama/musu-system/website-co/internal/daemon"
 	"github.com/yellowhama/musu-system/website-co/internal/pipeline"
 	"github.com/yellowhama/musu-system/website-co/internal/prompts"
 	"github.com/yellowhama/musu-system/website-co/internal/publish"
@@ -137,9 +139,41 @@ func resolveTenant(p string) string {
 }
 
 func cmdRun(args []string) {
+	fs := flag.NewFlagSet("run", flag.ExitOnError)
+	tenantsDir := fs.String("tenants", "tenants", "테넌트 디렉토리")
+	concurrency := fs.Int("concurrency", 2, "테넌트별 동시 드라이브 워커")
+	doPublish := fs.Bool("publish", false, "승인 시 실제 발행(미지정=섀도)")
+	timeout := fs.Duration("timeout", 8*time.Minute, "claude 호출 타임아웃")
+	_ = fs.Parse(args)
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	fmt.Fprintln(os.Stderr, "[stub] run — 테넌트 스케줄러 미구현(Phase 3). Ctrl+C로 종료.")
+
+	tenants, err := tenant.LoadAll(*tenantsDir)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "테넌트 로드 실패:", err)
+		os.Exit(1)
+	}
+	if len(tenants) == 0 {
+		fmt.Fprintln(os.Stderr, "테넌트 없음:", *tenantsDir)
+		os.Exit(1)
+	}
+	cl := agent.New(agent.Options{Timeout: *timeout})
+	opt := daemon.Options{Concurrency: *concurrency, Publish: *doPublish}
+
+	var wg sync.WaitGroup
+	for _, c := range tenants {
+		wg.Add(1)
+		go func(c tenant.Config) {
+			defer wg.Done()
+			if err := daemon.RunTenant(ctx, c, cl, opt); err != nil && ctx.Err() == nil {
+				fmt.Fprintf(os.Stderr, "[%s] 데몬 종료: %v\n", c.Site, err)
+			}
+		}(c)
+	}
+	fmt.Fprintf(os.Stderr, "website-co 데몬 — %d 테넌트 구동(발행=%v). Ctrl+C로 종료.\n", len(tenants), *doPublish)
 	<-ctx.Done()
-	fmt.Fprintln(os.Stderr, "종료.")
+	fmt.Fprintln(os.Stderr, "종료 신호 — 진행 중 작업 마무리 대기...")
+	wg.Wait()
+	fmt.Fprintln(os.Stderr, "종료 완료.")
 }

@@ -24,12 +24,12 @@ claude=stateless 실행기로 작가→검증→편집장→수정루프 완주,
 - [ ] **T2.4** 농지다 컷오버: `once --tenant nongjida --publish` 실발행 1편. ⚠️**프로덕션(wiki-gen→nongjida.kr)이라 감독 발행** — 빌드·경로 준비 완료, 실행만 남음(승인 시)
 
 ## Phase 3 — 토픽공급 + 스케줄 + 헬스 (musu-njd 흡수)
-- [ ] **T3.1** 큐 `internal/queue/`: claim/lease(타임아웃 재claim)/done/needs_human, 1차 파일(JSON) — block-storm 불가 입증
+- [x] **T3.1** 큐 `internal/queue/`: claim/lease(타임아웃 재claim=재시작안전)/done/needs_human/failed, file JSON. **유닛테스트**(claim·lease만료재claim·중복방지). **blocked 상태 자체가 없음 = block-storm 구조적 불가.**
 - [ ] **T3.2** 백로그+refill `internal/supply/`: 큐레이트 풀 + 마케터(MCP/HTTP) min/target
 - [ ] **T3.3** geo-refresh `internal/supply/geo.go`: 발행글 GEO 보강 사이클
-- [ ] **T3.4** 내장 스케줄러 `internal/schedule/`: cron(테넌트별 잡) — 수요·refill·발행·헬스
+- [ ] **T3.4** 내장 스케줄러 `internal/schedule/`: cron(테넌트별 잡) — 수요·refill·발행·헬스 + **일일 발행 캡(2신규+2geo)**
 - [ ] **T3.5** health+json + 데드맨 `internal/health/`
-- [ ] **T3.6** 워커풀·동시성: N goroutine 병렬 토픽 드라이브 + graceful shutdown
+- [x] **T3.6** 워커풀·동시성 `internal/daemon/`: N goroutine 병렬 드라이브 + graceful shutdown. `run` 멀티테넌트 배선. **데몬 결정적 테스트**(큐→작가→검증→편집장→발행→done + needs_human≠blocked).
 
 ## Phase 4 — 멀티테넌트 입증
 - [ ] **T4.1** vibecode 테넌트 `tenants/vibecode/config.json`

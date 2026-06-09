@@ -24,8 +24,9 @@ type Config struct {
 	Brand      string   `json:"brand"`       // {{BRAND}} — 작가/편집장 프롬프트 치환
 	Niche      string   `json:"niche"`       // 토픽 발굴용(Phase 3)
 	URL        string   `json:"url"`         // 사이트 URL
-	DraftsDir  string   `json:"draftsDir"`   // 작가 초안 저장 경로
-	LedgerPath string   `json:"ledgerPath"`  // 발행원장 경로(기존 published-approved.json 공유 가능 → 중복방지)
+	DraftsDir   string  `json:"draftsDir"`   // 작가 초안 저장 경로
+	LedgerPath  string  `json:"ledgerPath"`  // 발행원장 경로(기존 published-approved.json 공유 가능 → 중복방지)
+	BacklogPath string  `json:"backlogPath"` // 토픽 큐 파일(기존 topics-backlog.json 공유 가능)
 	Publish    Publish  `json:"publish"`     // 발행 어댑터
 	MaxRounds  int      `json:"maxRounds"`   // 수정 루프 캡(기본 4)
 	WriterCWDs []string `json:"writerCwds"`  // (선택) 작가 작업 디렉토리 회전 — stateless라 보통 불요
