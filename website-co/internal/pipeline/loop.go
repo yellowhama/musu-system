@@ -34,8 +34,14 @@ func Drive(ctx context.Context, r Runner, v prompts.Vars, topic string, maxRound
 	var feedback []string
 	for round := 1; round <= maxRounds; round++ {
 		res.Rounds = round
-		// 1) 작가 패스
-		draft, err := Write(ctx, r, v, topic, feedback)
+		// 1) 작가 패스 — 첫 라운드=신규 생성, 이후=이전 초안 수정(구조 회귀 방지)
+		var draft string
+		var err error
+		if round == 1 || res.Draft == "" {
+			draft, err = Write(ctx, r, v, topic)
+		} else {
+			draft, err = Revise(ctx, r, v, topic, res.Draft, feedback)
+		}
 		if err != nil {
 			return res, err
 		}
