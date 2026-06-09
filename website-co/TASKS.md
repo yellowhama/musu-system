@@ -25,10 +25,10 @@ claude=stateless 실행기로 작가→검증→편집장→수정루프 완주,
 
 ## Phase 3 — 토픽공급 + 스케줄 + 헬스 (musu-njd 흡수)
 - [x] **T3.1** 큐 `internal/queue/`: claim/lease(타임아웃 재claim=재시작안전)/done/needs_human/failed, file JSON. **유닛테스트**(claim·lease만료재claim·중복방지). **blocked 상태 자체가 없음 = block-storm 구조적 불가.**
-- [ ] **T3.2** 백로그+refill `internal/supply/`: 큐레이트 풀 + 마케터(MCP/HTTP) min/target
-- [ ] **T3.3** geo-refresh `internal/supply/geo.go`: 발행글 GEO 보강 사이클
-- [ ] **T3.4** 내장 스케줄러 `internal/schedule/`: cron(테넌트별 잡) — 수요·refill·발행·헬스 + **일일 발행 캡(2신규+2geo)**
-- [ ] **T3.5** health+json + 데드맨 `internal/health/`
+- [x] **T3.2** 백로그+refill `internal/supply/`: 테넌트 pool.json에서 min/target 보충(범용=풀은 테넌트 데이터). njd 16토픽 이식. **스모크: 큐 8편 보충 확인.** 마케터 동적발굴(MCP)은 후속.
+- [ ] **T3.3** geo-refresh `internal/supply/geo.go`: 발행글 GEO 보강 사이클 (후속)
+- [~] **T3.4** 스케줄러: **일일 발행 캡 완료**(`dailyCap`, ledger.PublishedToday — "2신규/일"). 연속 데몬+캡=케이던스 달성. 명시적 cron(특정시각 잡)은 후속(선택).
+- [x] **T3.5** health+json `internal/health/`: 테넌트별 pending·publishedToday·total·cap. `run --health-addr`. **스모크: status=pass 응답 확인.**
 - [x] **T3.6** 워커풀·동시성 `internal/daemon/`: N goroutine 병렬 드라이브 + graceful shutdown. `run` 멀티테넌트 배선. **데몬 결정적 테스트**(큐→작가→검증→편집장→발행→done + needs_human≠blocked).
 
 ## Phase 4 — 멀티테넌트 입증
@@ -39,3 +39,5 @@ claude=stateless 실행기로 작가→검증→편집장→수정루프 완주,
 - 2026-06-09: PRD 정본화(0920cd2). 환경 확인(musu-system·Go 1.26.3·claude CLI). TASKS 작성. Phase 1 착수.
 - 2026-06-09 #1: **T1.1·T1.2·T1.3 완료.** go.mod·main.go(once/run)·agent/claude.go(PATH주입·stdin·재시도) 빌드·vet 통과, `once --probe` 실제 claude 응답 수신. claude=stateless 실행기 입증.
 - 2026-06-09 #2: **T1.4~T1.9 완료 = Phase 1 전체 완료.** prompts·writer·editor·validate·loop 구현. **섀도 런 end-to-end 성공**(농지연금 기사 생성→3라운드→needs_human, 편집장이 위조출처+시행일누락 보류). block-storm 구조적 불가 입증. 튜닝: 작가 재작성 시 구조 회귀(R2 11실패). 다음=Phase 2(발행 어댑터+농지다 테넌트).
+- 2026-06-09 #3: **Phase 2 완료**(T2.1-T2.3): tenant config·publish 어댑터(file/command·write-ahead·멱등)·농지다 테넌트. 유닛테스트 통과. T2.4 실발행은 감독.
+- 2026-06-09 #4: **Phase 3 대부분 완료**(T3.1·T3.2·T3.4부분·T3.5·T3.6): 큐(lease 재시작안전, blocked 없음)·데몬 워커풀·refill·일일캡·health. **데몬 스모크 성공**(refill 8편·health pass·원장공유·워커풀). 결정적 테스트 다수. 남음: T3.3 geo·T3.4 cron(선택)·Phase 4 vibecode·T2.4 컷오버.

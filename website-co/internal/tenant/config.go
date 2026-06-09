@@ -29,6 +29,10 @@ type Config struct {
 	BacklogPath string  `json:"backlogPath"` // 토픽 큐 파일(기존 topics-backlog.json 공유 가능)
 	Publish    Publish  `json:"publish"`     // 발행 어댑터
 	MaxRounds  int      `json:"maxRounds"`   // 수정 루프 캡(기본 4)
+	DailyCap   int      `json:"dailyCap"`    // 일일 발행 캡(0=무제한). 케이던스 "2신규/일" 등
+	PoolPath   string   `json:"poolPath"`    // 큐레이트 토픽 풀(pool.json) — 백로그 보충 안전망
+	RefillMin  int      `json:"refillMin"`   // pending 이 이 값 미만이면 보충(기본 4)
+	RefillTgt  int      `json:"refillTarget"`// 보충 목표(기본 8)
 	WriterCWDs []string `json:"writerCwds"`  // (선택) 작가 작업 디렉토리 회전 — stateless라 보통 불요
 	Schedule   string   `json:"schedule"`    // (Phase 3) cron
 	SecretsRef string   `json:"secretsRef"`  // (선택) 시크릿 파일 참조 경로(값 비노출)

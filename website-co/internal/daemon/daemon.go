@@ -11,6 +11,7 @@ import (
 	"github.com/yellowhama/musu-system/website-co/internal/prompts"
 	"github.com/yellowhama/musu-system/website-co/internal/publish"
 	"github.com/yellowhama/musu-system/website-co/internal/queue"
+	"github.com/yellowhama/musu-system/website-co/internal/supply"
 	"github.com/yellowhama/musu-system/website-co/internal/tenant"
 )
 
@@ -57,6 +58,30 @@ func RunTenant(ctx context.Context, cfg tenant.Config, cl pipeline.Runner, opt O
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+		}
+		// 백로그 보충(고갈 방지 안전망) — 풀 설정 시.
+		if cfg.PoolPath != "" {
+			min, tgt := cfg.RefillMin, cfg.RefillTgt
+			if min <= 0 {
+				min = 4
+			}
+			if tgt <= 0 {
+				tgt = 8
+			}
+			if n, err := supply.Refill(q, cfg.PoolPath, min, tgt); err != nil {
+				log.Printf("[%s] refill 오류: %v", cfg.Site, err)
+			} else if n > 0 {
+				log.Printf("[%s] 백로그 보충 %d편", cfg.Site, n)
+			}
+		}
+		// 일일 발행 캡: 오늘 캡 도달 시 새 토픽 claim 정지(케이던스 "2신규/일"). 섀도는 캡 무관.
+		if opt.Publish && cfg.DailyCap > 0 && ledger.PublishedToday(opt.Now()) >= cfg.DailyCap {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(opt.Poll):
+			}
+			continue
 		}
 		item, ok := q.Claim(opt.Now(), opt.Lease)
 		if !ok {

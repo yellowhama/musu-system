@@ -50,6 +50,21 @@ func (l *Ledger) IsPublished(slug string) bool {
 	return ok && !e.Intent
 }
 
+// PublishedToday — now(로컬) 기준 오늘 발행 완료된 건수(일일 캡 판정용).
+func (l *Ledger) PublishedToday(now time.Time) int {
+	day := now.Format("2006-01-02")
+	n := 0
+	for _, e := range l.Published {
+		if e.Intent {
+			continue
+		}
+		if t, err := time.Parse(time.RFC3339, e.At); err == nil && t.Local().Format("2006-01-02") == day {
+			n++
+		}
+	}
+	return n
+}
+
 // MarkIntent — 발행 직전 write-ahead 의도 기록(중복발행 방지).
 func (l *Ledger) MarkIntent(slug, title string, now time.Time) error {
 	l.Published[slug] = Entry{At: now.UTC().Format(time.RFC3339), Title: title, Intent: true}

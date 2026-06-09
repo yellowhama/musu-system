@@ -5,7 +5,12 @@
   "url": "https://nongjida.kr",
   "draftsDir": "E:\\nongjida.com\\content-candidates\\news-drafts",
   "ledgerPath": "C:\\Users\\empty\\musu-for-njd\\tools\\weekly-cadence\\state\\published-approved.json",
+  "backlogPath": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\nongjida\\state\\backlog.json",
+  "poolPath": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\nongjida\\pool.json",
   "maxRounds": 4,
+  "dailyCap": 2,
+  "refillMin": 4,
+  "refillTarget": 8,
   "publish": {
     "mode": "command",
     "cwd": "E:\\nongjida.com\\api",

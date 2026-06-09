@@ -7,6 +7,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/yellowhama/musu-system/website-co/internal/agent"
 	"github.com/yellowhama/musu-system/website-co/internal/daemon"
+	"github.com/yellowhama/musu-system/website-co/internal/health"
 	"github.com/yellowhama/musu-system/website-co/internal/pipeline"
 	"github.com/yellowhama/musu-system/website-co/internal/prompts"
 	"github.com/yellowhama/musu-system/website-co/internal/publish"
@@ -144,6 +146,7 @@ func cmdRun(args []string) {
 	concurrency := fs.Int("concurrency", 2, "테넌트별 동시 드라이브 워커")
 	doPublish := fs.Bool("publish", false, "승인 시 실제 발행(미지정=섀도)")
 	timeout := fs.Duration("timeout", 8*time.Minute, "claude 호출 타임아웃")
+	healthAddr := fs.String("health-addr", "", "health+json 주소(예 :8088, 미지정=비활성)")
 	_ = fs.Parse(args)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
@@ -157,6 +160,19 @@ func cmdRun(args []string) {
 	if len(tenants) == 0 {
 		fmt.Fprintln(os.Stderr, "테넌트 없음:", *tenantsDir)
 		os.Exit(1)
+	}
+
+	if *healthAddr != "" {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/health", health.Handler(tenants, time.Now))
+		srv := &http.Server{Addr: *healthAddr, Handler: mux}
+		go func() {
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				fmt.Fprintln(os.Stderr, "health 서버:", err)
+			}
+		}()
+		go func() { <-ctx.Done(); _ = srv.Close() }()
+		fmt.Fprintf(os.Stderr, "health+json → http://%s/health\n", *healthAddr)
 	}
 	cl := agent.New(agent.Options{Timeout: *timeout})
 	opt := daemon.Options{Concurrency: *concurrency, Publish: *doPublish}
