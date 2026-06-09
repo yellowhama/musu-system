@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/yellowhama/musu-system/website-co/internal/agent"
+	"github.com/yellowhama/musu-system/website-co/internal/pipeline"
+	"github.com/yellowhama/musu-system/website-co/internal/prompts"
 )
 
 func main() {
@@ -42,7 +44,8 @@ func cmdOnce(args []string) {
 	fs := flag.NewFlagSet("once", flag.ExitOnError)
 	probe := fs.Bool("probe", false, "claude 실행기 연결 점검")
 	topic := fs.String("topic", "", "드라이브할 토픽")
-	timeout := fs.Duration("timeout", 5*time.Minute, "claude 호출 타임아웃")
+	timeout := fs.Duration("timeout", 8*time.Minute, "claude 호출 타임아웃")
+	rounds := fs.Int("rounds", 4, "수정 루프 최대 라운드")
 	_ = fs.Parse(args)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -62,8 +65,21 @@ func cmdOnce(args []string) {
 		fmt.Fprintln(os.Stderr, "--probe 또는 --topic 필요")
 		os.Exit(2)
 	}
-	// Phase 1: 파이프라인 루프 배선 예정(T1.8). 현재는 토픽 에코.
-	fmt.Fprintln(os.Stderr, "[stub] once --topic:", *topic, "— 파이프라인 배선 예정(T1.5~T1.9)")
+	// 섀도 실행: 작가→검증→편집장→수정루프 1토픽. 발행 안 함(출력만).
+	res, err := pipeline.Drive(ctx, cl, prompts.Vars{Brand: "농지다"}, *topic, *rounds)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "드라이브 실패:", err)
+		os.Exit(1)
+	}
+	fmt.Fprintf(os.Stderr, "\n===== 결과: %s (%d라운드) =====\n", res.Status, res.Rounds)
+	for _, t := range res.Trace {
+		fmt.Fprintln(os.Stderr, " ·", t)
+	}
+	if res.Verdict.Notes != "" {
+		fmt.Fprintln(os.Stderr, "편집장 노트:", res.Verdict.Notes)
+	}
+	fmt.Fprintln(os.Stderr, "\n===== 초안(섀도, 발행 안 함) =====")
+	fmt.Println(res.Draft)
 }
 
 func cmdRun(args []string) {

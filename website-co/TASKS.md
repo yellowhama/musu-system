@@ -7,12 +7,12 @@
 - [x] **T1.1** 스켈레톤: `go.mod` + go.work 등록 + `main.go`(flag CLI: `once`/`run`). `go build`·`go vet` 통과. (cobra/core는 후속, 1차 stdlib)
 - [x] **T1.2** agent exec 래퍼 `internal/agent/claude.go`: `Run(ctx, system, user)` — `claude -p`, **PATH 주입**(%APPDATA%\npm), 프롬프트 stdin(긴 입력 안전), 타임아웃, 지수백오프 재시도
 - [x] **T1.3** 래퍼 실측: `once --probe` → 실제 claude 응답 수신 OK ("나는 Claude Code…"). **claude=stateless 실행기 작동 입증.**
-- [ ] **T1.4** 프롬프트 이식: paperclip 작가/편집장 AGENTS.md → `internal/prompts/`(embed). 평이 한국어·YMYL·가드레일 보존
-- [ ] **T1.5** writer 패스 `internal/pipeline/writer.go`: `Write(topic, feedback) (markdownDraft, error)` — system=작가프롬프트, 출력=마크다운만
-- [ ] **T1.6** editor 패스 `internal/pipeline/editor.go`: `Review(draft) (Verdict, error)` — 출력=JSON `{decision,changes[],notes}`, 엄격 파싱+재시도
-- [ ] **T1.7** validate 게이트 `internal/pipeline/validate.go`: publishGate(금지어·플레이스홀더·구조). 1차 규칙 Go 포팅(핵심) — 실패→피드백 문자열
-- [ ] **T1.8** loop `internal/pipeline/loop.go`: writer→validate→editor→(changes면 writer 재패스, 라운드캡 4)→approved | needs_human. 상태 in-memory(Phase3서 영속)
-- [ ] **T1.9** 섀도 실행 `once --topic "<토픽>"`: 루프 1회전 → 초안+verdict 출력(발행 안 함). paperclip 출력 품질 대조
+- [x] **T1.4** 프롬프트 이식: `internal/prompts/`(writer.md·editor.md go:embed, {{BRAND}}/{{SLUG}} 치환). stateless 적응(작가=md만, 편집장=JSON만), YMYL·평이한국어·5섹션 게이트 보존
+- [x] **T1.5** writer 패스 `pipeline/writer.go`: `Write(topic, feedback)` → 마크다운(코드펜스 방어)
+- [x] **T1.6** editor 패스 `pipeline/editor.go`: `Review(draft)` → `Verdict{decision,changes,notes}`, JSON 추출 파싱
+- [x] **T1.7** validate 게이트 `pipeline/validate.go`: 5섹션·tags4·.go.kr출처·"내농지"·"확인할것"·단정금지어 — 핵심 규칙 Go 포팅
+- [x] **T1.8** loop `pipeline/loop.go`: writer→validate→editor→수정루프(캡)→approved|**needs_human(blocked 아님!)**. 상태 Result로 호출자 소유
+- [~] **T1.9** 섀도 실행 `once --topic`: 배선·빌드 완료, 실런 검증 중(발행 안 함)
 
 ## Phase 2 — 발행 + 농지다 테넌트
 - [ ] **T2.1** 테넌트 config 로더 `internal/tenant/config.go`: `tenants/<site>/config.json`(니치·발행대상·프롬프트경로·시크릿참조·스케줄)
