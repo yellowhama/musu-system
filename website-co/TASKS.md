@@ -32,8 +32,17 @@ claude=stateless 실행기로 작가→검증→편집장→수정루프 완주,
 - [x] **T3.6** 워커풀·동시성 `internal/daemon/`: N goroutine 병렬 드라이브 + graceful shutdown. `run` 멀티테넌트 배선. **데몬 결정적 테스트**(큐→작가→검증→편집장→발행→done + needs_human≠blocked).
 
 ## Phase 4 — 멀티테넌트 입증
-- [ ] **T4.1** vibecode 테넌트 `tenants/vibecode/config.json`
-- [ ] **T4.2** 같은 바이너리·두 테넌트 동시 구동 검증
+- [x] **T4.1** vibecode 테넌트 `tenants/vibecode/config.json`+pool.json(file 모드 플레이스홀더, 운영자가 niche/발행 채움)
+- [x] **T4.2** **같은 바이너리·2 테넌트 동시 구동 검증.** 스모크: health에 njd+vibecode 둘 다, 각 큐·원장·캡 격리, 독립 refill. **멀티테넌트 입증 완료.**
+
+## ✅ Phase 1-4 코어 완료 (2026-06-09) — musu-website-co 작동
+PRD의 정석 아키텍처를 작동하는 Go 서비스로 구현. **block-storm 구조적 불가**(paperclip 이슈/reconciler 없음, lease 재시작안전, needs_human≠blocked). 작가→검증→편집장(YMYL)→발행 루프 섀도 검증. 멀티테넌트(농지다·vibecode) 입증. 결정적 유닛테스트 다수.
+
+### 남은 작업(enhancement·supervised)
+- [ ] **T2.4** 농지다 실발행 컷오버 — `run --publish` 또는 `once --tenant nongjida --publish`. ⚠️프로덕션(wiki-gen→nongjida.kr), 감독 하에. 빌드 준비완료.
+- [ ] **T3.3** geo-refresh 사이클 (발행글 GEO 보강)
+- [ ] **T3.4** 명시적 cron 스케줄(특정시각 잡) — 현재 연속데몬+일일캡으로 케이던스 달성, cron은 선택
+- [ ] 작가 재작성 시 구조 회귀 튜닝(R2 검증실패 다수) · 마케터 동적 토픽발굴(MCP) · Task Scheduler/systemd 상시 등록
 
 ## 진행 로그
 - 2026-06-09: PRD 정본화(0920cd2). 환경 확인(musu-system·Go 1.26.3·claude CLI). TASKS 작성. Phase 1 착수.

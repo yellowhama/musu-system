@@ -1,0 +1,18 @@
+{
+  "site": "vibecode",
+  "brand": "vibecode.town",
+  "niche": "(운영자 설정) vibecode.town 주제 — 예: 바이브코딩·창작 도구. 작가/편집장 기준은 brand 치환만 다름",
+  "url": "https://vibecode.town",
+  "draftsDir": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\vibecode\\state\\drafts",
+  "ledgerPath": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\vibecode\\state\\published-approved.json",
+  "backlogPath": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\vibecode\\state\\backlog.json",
+  "poolPath": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\vibecode\\pool.json",
+  "maxRounds": 4,
+  "dailyCap": 1,
+  "refillMin": 2,
+  "refillTarget": 4,
+  "publish": {
+    "mode": "file",
+    "dir": "C:\\Users\\empty\\musu-system\\website-co\\tenants\\vibecode\\state\\published"
+  }
+}
