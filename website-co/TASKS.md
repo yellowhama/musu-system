@@ -42,7 +42,11 @@ PRD의 정석 아키텍처를 작동하는 Go 서비스로 구현. **block-storm
 - [ ] **T2.4** 농지다 실발행 컷오버 — `run --publish` 또는 `once --tenant nongjida --publish`. ⚠️프로덕션(wiki-gen→nongjida.kr), 감독 하에. 빌드 준비완료.
 - [ ] **T3.3** geo-refresh 사이클 (발행글 GEO 보강)
 - [ ] **T3.4** 명시적 cron 스케줄(특정시각 잡) — 현재 연속데몬+일일캡으로 케이던스 달성, cron은 선택
-- [ ] 작가 재작성 시 구조 회귀 튜닝(R2 검증실패 다수) · 마케터 동적 토픽발굴(MCP) · Task Scheduler/systemd 상시 등록
+- [x] **작가 구조회귀 튜닝 완료**: Write(첫패스)/Revise(이전초안+고칠점만, 구조유지) 분리. **섀도 재런 검증: approved(3라운드)** — 편집장이 농지법 제8조(시행 2025.1.24)·MAFRA 보도자료 WebFetch 실재확인 후 승인. **파이프라인이 발행가능 기사를 approved까지 수렴 입증.**
+- [ ] 마케터 동적 토픽발굴(MCP) · Task Scheduler/systemd 상시 등록 · website-co marketer-v2-seo→main 이전
+
+## ✅ 종합: musu-website-co 프로덕션 준비 완료(실발행 컷오버만 감독 대기)
+파이프라인이 needs_human(위조출처 보류)·approved(검증출처 발행가능) 둘 다 정확 판정. block-storm 구조적 불가. 멀티테넌트. **T2.4 실발행(운영자 go-ahead)만 남음.**
 
 ## 진행 로그
 - 2026-06-09: PRD 정본화(0920cd2). 환경 확인(musu-system·Go 1.26.3·claude CLI). TASKS 작성. Phase 1 착수.
