@@ -12,7 +12,10 @@
 - [x] **T1.6** editor 패스 `pipeline/editor.go`: `Review(draft)` → `Verdict{decision,changes,notes}`, JSON 추출 파싱
 - [x] **T1.7** validate 게이트 `pipeline/validate.go`: 5섹션·tags4·.go.kr출처·"내농지"·"확인할것"·단정금지어 — 핵심 규칙 Go 포팅
 - [x] **T1.8** loop `pipeline/loop.go`: writer→validate→editor→수정루프(캡)→approved|**needs_human(blocked 아님!)**. 상태 Result로 호출자 소유
-- [~] **T1.9** 섀도 실행 `once --topic`: 배선·빌드 완료, 실런 검증 중(발행 안 함)
+- [x] **T1.9** 섀도 실행 `once --topic`: **end-to-end 검증 성공.** 실제 기사 생성→작가/검증/편집장 3라운드→needs_human(편집장이 위조의심 출처+시행일누락 정확히 보류). **block-storm·reconciler·오실레이션 전무 입증.** YMYL 게이트 작동. ⚠️튜닝 여지: R2 검증실패 11건(작가가 재작성 시 구조 일부 누락=회귀) — 피드백 주입 시 "기존 구조 유지" 강조 필요.
+
+## ✅ Phase 1 완료 (2026-06-09) — 정석 아키텍처 PoC 입증
+claude=stateless 실행기로 작가→검증→편집장→수정루프 완주, paperclip 이슈/reconciler 없음 → **block-storm 구조적 불가**. 편집장 YMYL 게이트 보존(위조출처 차단). 미수렴=needs_human(≠blocked).
 
 ## Phase 2 — 발행 + 농지다 테넌트
 - [ ] **T2.1** 테넌트 config 로더 `internal/tenant/config.go`: `tenants/<site>/config.json`(니치·발행대상·프롬프트경로·시크릿참조·스케줄)
@@ -34,4 +37,5 @@
 
 ## 진행 로그
 - 2026-06-09: PRD 정본화(0920cd2). 환경 확인(musu-system·Go 1.26.3·claude CLI). TASKS 작성. Phase 1 착수.
-- 2026-06-09 #1: **T1.1·T1.2·T1.3 완료.** go.mod·main.go(once/run)·agent/claude.go(PATH주입·stdin·재시도) 빌드·vet 통과, `once --probe` 실제 claude 응답 수신. claude=stateless 실행기 입증. 다음=T1.4 프롬프트 이식.
+- 2026-06-09 #1: **T1.1·T1.2·T1.3 완료.** go.mod·main.go(once/run)·agent/claude.go(PATH주입·stdin·재시도) 빌드·vet 통과, `once --probe` 실제 claude 응답 수신. claude=stateless 실행기 입증.
+- 2026-06-09 #2: **T1.4~T1.9 완료 = Phase 1 전체 완료.** prompts·writer·editor·validate·loop 구현. **섀도 런 end-to-end 성공**(농지연금 기사 생성→3라운드→needs_human, 편집장이 위조출처+시행일누락 보류). block-storm 구조적 불가 입증. 튜닝: 작가 재작성 시 구조 회귀(R2 11실패). 다음=Phase 2(발행 어댑터+농지다 테넌트).
