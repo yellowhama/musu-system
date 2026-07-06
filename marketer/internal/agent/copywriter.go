@@ -9,7 +9,7 @@ import (
 )
 
 type Copywriter struct {
-	Client         *AgentClient
+	Client         Asker
 	ActivePersona  string
 	PersonaContent string
 	ProjectPath    string
@@ -18,6 +18,18 @@ type Copywriter struct {
 func NewCopywriter(url, model, personaName, projectPath, wikiDir, project string) *Copywriter {
 	c := &Copywriter{
 		Client:        NewAgentClient(url, model, wikiDir, project),
+		ActivePersona: personaName,
+		ProjectPath:   projectPath,
+	}
+	c.loadPersona(personaName)
+	return c
+}
+
+// NewCopywriterWith builds a Copywriter over an injected Asker (e.g. a
+// subscription-CLI generator) instead of the OpenAI/Ollama HTTP client.
+func NewCopywriterWith(client Asker, personaName, projectPath string) *Copywriter {
+	c := &Copywriter{
+		Client:        client,
 		ActivePersona: personaName,
 		ProjectPath:   projectPath,
 	}

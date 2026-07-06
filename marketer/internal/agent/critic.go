@@ -6,7 +6,7 @@ import (
 )
 
 type Critic struct {
-	Client *AgentClient
+	Client Asker
 }
 
 type CriticEvaluation struct {
@@ -18,6 +18,12 @@ func NewCritic(url, model, wikiDir, project string) *Critic {
 	return &Critic{
 		Client: NewAgentClient(url, model, wikiDir, project),
 	}
+}
+
+// NewCriticWith builds a Critic over an injected Asker (e.g. a subscription-CLI
+// generator) instead of the OpenAI/Ollama HTTP client.
+func NewCriticWith(client Asker) *Critic {
+	return &Critic{Client: client}
 }
 
 func (c *Critic) Evaluate(brief *MarketingBrief, personaContent, draft string) (*CriticEvaluation, error) {

@@ -26,6 +26,13 @@ import (
 	"github.com/yellowhama/musu-system/marketer/internal/bridge"
 )
 
+// GenerateFunc 는 주입형 LLM 트랜스포트. 설정되면 crew(Strategist/Copywriter/Critic)가
+// OpenAI/Ollama HTTP 대신 이 함수로 텍스트를 생성한다. website-co 가 자신의 하드닝된
+// **구독 CLI**(gemini/claude) agent.Client 를 여기 꽂아, 마케팅이 콘텐츠 데몬과 **같은
+// 단일 AI 백엔드**로 돌게 한다(별도 LLM 서버 불요). system 은 시스템/역할 지시, user 는
+// 실제 프롬프트다.
+type GenerateFunc func(ctx context.Context, system, user string) (string, error)
+
 // Config 는 in-process marketer 동작 설정. 빈 필드는 New 가 기본값으로 채운다.
 type Config struct {
 	WikiDir   string // crawl-ai 와 공유하는 wiki 디렉토리 (기본 "./wiki")
@@ -33,6 +40,10 @@ type Config struct {
 	AIBaseURL string // OpenAI 호환 LLM 엔드포인트 (기본 Ollama "http://localhost:11434/v1")
 	AIModel   string // 모델 (기본 "llama3")
 	Persona   string // 카피라이터 페르소나 (기본 "default")
+	// Generate 가 non-nil 이면 HTTP LLM 대신 이 구독-CLI 트랜스포트로 crew 를 돌린다.
+	// AIBaseURL/AIModel 은 무시되고 LLMReady 는 항상 true(견고성은 주입 클라이언트의
+	// 재시도·폴백이 담당).
+	Generate GenerateFunc
 }
 
 // Brief 는 전략 브리프의 공개 표현(내부 agent.MarketingBrief 외부 노출용).
@@ -68,6 +79,71 @@ func New(cfg Config) *Client {
 	return &Client{cfg: cfg}
 }
 
+// genAsker 는 GenerateFunc 를 crew 가 쓰는 agent.Asker(Ask(prompt, jsonFormat)) 로 감싼다.
+// jsonFormat 요청 시 구독 CLI 가 마크다운 펜스로 감싸는 경향을 보정한다(시스템 지시 + 펜스 제거).
+type genAsker struct {
+	ctx context.Context
+	gen GenerateFunc
+}
+
+func (g genAsker) Ask(prompt string, jsonFormat bool) (string, error) {
+	system := ""
+	if jsonFormat {
+		system = "You are a strict JSON generator. Output ONLY one raw JSON object. No markdown fences, no prose, no commentary."
+	}
+	out, err := g.gen(g.ctx, system, prompt)
+	if err != nil {
+		return "", err
+	}
+	if jsonFormat {
+		out = stripJSONFences(out)
+	}
+	return out, nil
+}
+
+// stripJSONFences 는 구독 CLI 응답에서 ```json … ``` 코드펜스를 벗기고 첫 '{' ~ 마지막 '}'
+// 로 자른다(모델이 앞뒤에 산문을 붙여도 JSON 파싱이 성공하도록).
+func stripJSONFences(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "```") {
+		if i := strings.IndexByte(s, '\n'); i >= 0 {
+			s = s[i+1:]
+		}
+		s = strings.TrimSuffix(strings.TrimSpace(s), "```")
+		s = strings.TrimSpace(s)
+	}
+	if start := strings.IndexByte(s, '{'); start >= 0 {
+		if end := strings.LastIndexByte(s, '}'); end > start {
+			return s[start : end+1]
+		}
+	}
+	return s
+}
+
+// newStrategist / newCopywriter / newCritic 는 Generate 주입 여부에 따라 구독-CLI 또는
+// HTTP LLM 백엔드로 crew 를 만든다.
+func (c *Client) newStrategist(ctx context.Context) *agent.Strategist {
+	if c.cfg.Generate != nil {
+		return agent.NewStrategistWith(genAsker{ctx: ctx, gen: c.cfg.Generate})
+	}
+	return agent.NewStrategist(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.WikiDir, c.cfg.Project)
+}
+
+func (c *Client) newCopywriter(ctx context.Context) *agent.Copywriter {
+	projectPath := filepath.Join("projects", c.cfg.Project)
+	if c.cfg.Generate != nil {
+		return agent.NewCopywriterWith(genAsker{ctx: ctx, gen: c.cfg.Generate}, c.cfg.Persona, projectPath)
+	}
+	return agent.NewCopywriter(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.Persona, projectPath, c.cfg.WikiDir, c.cfg.Project)
+}
+
+func (c *Client) newCritic(ctx context.Context) *agent.Critic {
+	if c.cfg.Generate != nil {
+		return agent.NewCriticWith(genAsker{ctx: ctx, gen: c.cfg.Generate})
+	}
+	return agent.NewCritic(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.WikiDir, c.cfg.Project)
+}
+
 // gatherContext 는 wiki 에서 토픽 근거를 모은다. 근거 0건이면 에러(→호출측 폴백).
 func (c *Client) gatherContext(topic string) (string, error) {
 	b := bridge.NewWikiBridge(c.cfg.WikiDir)
@@ -89,7 +165,7 @@ func (c *Client) Brief(ctx context.Context, topic string) (*Brief, error) {
 	if err != nil {
 		return nil, err
 	}
-	s := agent.NewStrategist(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.WikiDir, c.cfg.Project)
+	s := c.newStrategist(ctx)
 	mb, err := s.CreateBrief(cxt, "")
 	if err != nil {
 		return nil, err
@@ -104,15 +180,14 @@ func (c *Client) Draft(ctx context.Context, topic string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s := agent.NewStrategist(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.WikiDir, c.cfg.Project)
+	s := c.newStrategist(ctx)
 	brief, err := s.CreateBrief(cxt, "")
 	if err != nil {
 		brief = &agent.MarketingBrief{ValueProp: "General info", Target: "General audience", Framework: "AIDA"}
 	}
 
-	projectPath := filepath.Join("projects", c.cfg.Project)
-	cw := agent.NewCopywriter(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.Persona, projectPath, c.cfg.WikiDir, c.cfg.Project)
-	cr := agent.NewCritic(c.cfg.AIBaseURL, c.cfg.AIModel, c.cfg.WikiDir, c.cfg.Project)
+	cw := c.newCopywriter(ctx)
+	cr := c.newCritic(ctx)
 
 	var final, feedback string
 	for i := 0; i < 3; i++ {
@@ -133,6 +208,10 @@ func (c *Client) Draft(ctx context.Context, topic string) (string, error) {
 // LLMReady 는 AIBaseURL(Ollama) 가 응답하는지 짧게 핑한다. 호출 게이트용 —
 // false 면 호출측은 정적 폴백(pool.json 등)으로 우회해야 한다.
 func (c *Client) LLMReady(ctx context.Context) bool {
+	// 구독-CLI 주입 시엔 별도 HTTP LLM 서버가 없다 — 항상 ready(견고성은 agent.Client 재시도·폴백).
+	if c.cfg.Generate != nil {
+		return true
+	}
 	base := strings.TrimSuffix(c.cfg.AIBaseURL, "/v1")
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base, nil)
 	if err != nil {

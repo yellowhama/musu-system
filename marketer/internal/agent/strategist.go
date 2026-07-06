@@ -6,7 +6,7 @@ import (
 )
 
 type Strategist struct {
-	Client *AgentClient
+	Client Asker
 }
 
 type MarketingBrief struct {
@@ -21,6 +21,12 @@ func NewStrategist(url, model, wikiDir, project string) *Strategist {
 	return &Strategist{
 		Client: NewAgentClient(url, model, wikiDir, project),
 	}
+}
+
+// NewStrategistWith builds a Strategist over an injected Asker (e.g. a
+// subscription-CLI generator) instead of the OpenAI/Ollama HTTP client.
+func NewStrategistWith(client Asker) *Strategist {
+	return &Strategist{Client: client}
 }
 
 func (s *Strategist) CreateBrief(context string, history string) (*MarketingBrief, error) {
